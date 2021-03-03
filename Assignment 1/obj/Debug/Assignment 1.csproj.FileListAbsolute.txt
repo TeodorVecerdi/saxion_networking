@@ -1,6 +1,0 @@
-C:\dev\saxion\unity\networking\Assignment 1\obj\Debug\Assignment 1.csprojAssemblyReference.cache
-C:\dev\saxion\unity\networking\Assignment 1\obj\Debug\Assignment 1.csproj.CoreCompileInputs.cache
-C:\dev\saxion\unity\networking\Assignment 1\bin\Debug\Assignment_1.exe
-C:\dev\saxion\unity\networking\Assignment 1\bin\Debug\Assignment_1.pdb
-C:\dev\saxion\unity\networking\Assignment 1\obj\Debug\Assignment_1.exe
-C:\dev\saxion\unity\networking\Assignment 1\obj\Debug\Assignment_1.pdb
