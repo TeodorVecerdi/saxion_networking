@@ -263,8 +263,8 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1152322911824879256}
   m_HandleRect: {fileID: 1152322911824879257}
   m_Direction: 0
-  m_Value: 1
-  m_Size: 0.99999994
+  m_Value: 0
+  m_Size: 1
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:
@@ -409,7 +409,7 @@ MonoBehaviour:
   m_Elasticity: 0.1
   m_Inertia: 1
   m_DecelerationRate: 0.135
-  m_ScrollSensitivity: 1
+  m_ScrollSensitivity: 20
   m_Viewport: {fileID: 1152322911542269341}
   m_HorizontalScrollbar: {fileID: 1152322910831639202}
   m_VerticalScrollbar: {fileID: 1152322912823082454}
@@ -1048,9 +1048,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 42d297feaabe5f24e8d377778badb343, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _panelWrapper: {fileID: 1152322912071829625}
-  _hostname: localhost
-  _port: 55555
+  panelWrapper: {fileID: 1152322912071829625}
+  hostname: localhost
+  port: 55555
+  verbose: 0
 --- !u!1 &1152322912384210284
 GameObject:
   m_ObjectHideFlags: 0

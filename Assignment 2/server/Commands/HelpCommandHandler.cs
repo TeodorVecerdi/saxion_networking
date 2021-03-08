@@ -17,13 +17,13 @@ namespace Commands {
         public void HandleCommand(Server server, TcpClient sender, string command) {
             var sb = new StringBuilder();
             sb.AppendLine("Available commands:");
-            foreach (var commandHandler in server.commands) {
-                sb.AppendLine($"[{commandHandler.Name}]: {commandHandler.Syntax}");
+            foreach (var commandHandler in server.Commands) {
+                sb.AppendLine($"<b>[{commandHandler.Name}]</b>: {commandHandler.Syntax}");
                 sb.AppendLine($"    Description: {commandHandler.Description}");
                 if(commandHandler.Aliases.Count > 0)
                     sb.AppendLine($"    Aliases: {string.Join(", ", commandHandler.Aliases.Select(alias => $"/{alias}"))}");
             }
-            server.SendMessage(sb.ToString().TrimEnd('\n', ' ', '\t'), sender);
+            server.QueueMessage(sb.ToString().TrimEnd('\n', ' ', '\t'), sender);
         }
     }
 }

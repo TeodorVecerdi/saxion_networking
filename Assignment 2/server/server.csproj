@@ -36,13 +36,15 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\client\Assets\Scripts\shared\StreamUtil.cs">
-      <Link>StreamUtil.cs</Link>
+      <Link>Shared\StreamUtil.cs</Link>
     </Compile>
     <Compile Include="..\client\Assets\Scripts\shared\ServerUtility.cs">
-      <Link>ServerUtility.cs</Link>
+      <Link>Shared\ServerUtility.cs</Link>
     </Compile>
     <Compile Include="Commands\HelpCommandHandler.cs" />
     <Compile Include="Commands\ListCommandHandler.cs" />
+    <Compile Include="Commands\NicknameCommandHandler.cs" />
+    <Compile Include="Commands\WhisperCommandHandler.cs" />
     <Compile Include="ICommandHandler.cs" />
     <Compile Include="Logger.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

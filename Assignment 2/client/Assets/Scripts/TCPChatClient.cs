@@ -1,4 +1,4 @@
-using Shared;
+﻿using Shared;
 using System;
 using System.Net.Sockets;
 using System.Text;
@@ -13,6 +13,7 @@ public class TCPChatClient : MonoBehaviour {
     [SerializeField] private PanelWrapper panelWrapper = null;
     [SerializeField] private string hostname = "localhost";
     [SerializeField] private int port = 55555;
+    [SerializeField] private bool verbose = false;
 
     private DateTime lastHeartbeatTime;
     private float? serverTimeout;
@@ -49,7 +50,7 @@ public class TCPChatClient : MonoBehaviour {
         try {
             var outBytes = ServerUtility.EncodeMessageAsBytes(message);
             lastHeartbeatTime = DateTime.Now;
-            Debug.Log($"Sent message: {ServerUtility.EncodeMessage(message)}");
+            if(verbose) Debug.Log($"Sent message: {ServerUtility.EncodeMessage(message)}");
             StreamUtil.Write(client.GetStream(), outBytes);
         } catch (Exception e) {
             panelWrapper.AddOutput(e.Message);
@@ -62,7 +63,7 @@ public class TCPChatClient : MonoBehaviour {
     private void ProcessMessage(string message) {
         // Normal message to output to console
         if (message.StartsWith("MSG:")) {
-            Debug.Log($"Received message: {message}");
+            if(verbose) Debug.Log($"Received message: {message}");
             panelWrapper.AddOutput(message.Substring(4));
             return;
         }
@@ -76,7 +77,7 @@ public class TCPChatClient : MonoBehaviour {
             }
             
             serverTimeout = timeout;
-            Debug.Log($"Received timeout from server {serverTimeout}");
+            if(verbose) Debug.Log($"Received timeout from server {serverTimeout}");
         }
     }
 

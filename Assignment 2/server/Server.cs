@@ -6,7 +6,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using Commands;
-using shared;
+using Shared;
 
 public class Server {
     private const float defaultClientTimeout = 5.0f;
@@ -14,11 +14,13 @@ public class Server {
     private readonly float clientTimeout;
     private readonly TcpListener listener;
 
-    internal readonly List<ICommandHandler> commands;
+    internal readonly List<ICommandHandler> Commands;
     internal readonly Dictionary<TcpClient, User> Clients;
     internal static bool Verbose;
 
     private readonly List<TcpClient> faultyClients;
+    private readonly Queue<QueuedMessage> messageQueue;
+    private readonly Queue<QueuedMessage> broadcastQueue;
 
     public Server(float clientTimeout = defaultClientTimeout, bool verbose = false) {
         this.clientTimeout = clientTimeout;
@@ -26,10 +28,14 @@ public class Server {
         listener = new TcpListener(IPAddress.Any, 55555);
         Clients = new Dictionary<TcpClient, User>();
         faultyClients = new List<TcpClient>();
+        messageQueue = new Queue<QueuedMessage>();
+        broadcastQueue = new Queue<QueuedMessage>();
 
-        commands = new List<ICommandHandler> {
+        Commands = new List<ICommandHandler> {
             new HelpCommandHandler(),
-            new ListCommandHandler()
+            new ListCommandHandler(),
+            new NicknameCommandHandler(),
+            new WhisperCommandHandler()
         };
     }
 
@@ -51,8 +57,21 @@ public class Server {
 
             Logger.Info($"Accepted new client {user}");
             SendMessage($"TIMEOUT:{clientTimeout:F4}", client);
-            SendMessage($"You joined the server as {user.Name}", client);
-            BroadcastMessage($"Client {user.Name} joined the server.", client);
+            
+            QueueMessage($"You joined the server as {user.Name}", client);
+            QueueBroadcast($"Client {user.Name} joined the server.", client);
+        }
+    }
+
+    public void ProcessQueue() {
+        while (broadcastQueue.Count > 0) {
+            var message = broadcastQueue.Dequeue();
+            BroadcastMessage(message.Message, message.Client);
+        }
+
+        while (messageQueue.Count > 0) {
+            var message = messageQueue.Dequeue();
+            SendMessage(message.Message, message.Client);
         }
     }
 
@@ -96,7 +115,7 @@ public class Server {
 
     private void RemoveFaultyClients() {
         foreach (var client in faultyClients) {
-            Logger.Warn($"Removing faulty client. {Clients[client]}");
+            Logger.Warn($"Removing invalid client {Clients[client]} (could be a disconnected client)");
             Clients.Remove(client);
             try {
                 client.Close();
@@ -106,6 +125,14 @@ public class Server {
         }
 
         faultyClients.Clear();
+    }
+
+    internal void QueueBroadcast(string message, TcpClient except = null) {
+        broadcastQueue.Enqueue(new QueuedMessage(message, except));
+    }
+
+    internal void QueueMessage(string message, TcpClient target) {
+        messageQueue.Enqueue(new QueuedMessage(message, target));
     }
 
     internal void BroadcastMessage(string message, TcpClient except = null) {
@@ -147,8 +174,7 @@ public class Server {
             return true;
         }
 
-        var isChatCommand = command.StartsWith("/");
-        if (isChatCommand) {
+        if (command.StartsWith("/")) {
             if (Verbose) Logger.Info($"Received chat command [{command}] from client {Clients[client]}", "INFO-VERBOSE");
             ProcessChatCommand(client, command);
             return true;
@@ -161,19 +187,30 @@ public class Server {
         var chatCommand = command.Split(' ')[0].Substring(1);
         var commandHandler = GetCommandHandler(chatCommand);
         if (commandHandler == null) {
-            SendMessage($"Unknown chat command `/{chatCommand}`! To get a list of valid commands type `/help`.", client);
+            SendMessage($"Unknown chat command `/{chatCommand}`. To get a list of valid commands type `/help`.", client);
             return;
         }
 
         if (!commandHandler.IsValidSyntax(command)) {
-            SendMessage($"Invalid syntax for command `/{chatCommand}`.\nSyntax: `{commandHandler.Syntax}`.", client);
+            SendMessage($"Invalid syntax for command `/{chatCommand}`. Syntax: `{commandHandler.Syntax}`.", client);
             return;
         }
-        
+
         commandHandler.HandleCommand(this, client, command);
+        if (Verbose) Logger.Info($"Command `/{chatCommand}` was handled successfully by `{commandHandler.GetType().Name}`", "INFO-VERBOSE");
     }
 
     private ICommandHandler GetCommandHandler(string command) {
-        return commands.Find(handler => handler.Name == command || handler.Aliases.Contains(command));
+        return Commands.Find(handler => handler.Name == command || handler.Aliases.Contains(command));
+    }
+
+    private readonly struct QueuedMessage {
+        internal readonly string Message;
+        internal readonly TcpClient Client;
+
+        public QueuedMessage(string message, TcpClient client) {
+            Message = message;
+            Client = client;
+        }
     }
 }

@@ -124,6 +124,18 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!114 &928994732 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1152322912071829625, guid: ca98a4c9766cede4d8ec30ed842470a9,
+    type: 3}
+  m_PrefabInstance: {fileID: 1835744008}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2950dd5f9f8eb4642beb885226925471, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &1200196654
 GameObject:
   m_ObjectHideFlags: 0
@@ -546,7 +558,7 @@ PrefabInstance:
     - target: {fileID: 1152322912071829630, guid: ca98a4c9766cede4d8ec30ed842470a9,
         type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: 0.000061035156
+      value: 0.00012207031
       objectReference: {fileID: 0}
     - target: {fileID: 1152322912071829630, guid: ca98a4c9766cede4d8ec30ed842470a9,
         type: 3}
@@ -593,6 +605,11 @@ PrefabInstance:
       propertyPath: m_SizeDelta.y
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7277910124912852510, guid: ca98a4c9766cede4d8ec30ed842470a9,
+        type: 3}
+      propertyPath: panelWrapper
+      value: 
+      objectReference: {fileID: 928994732}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: ca98a4c9766cede4d8ec30ed842470a9, type: 3}
 --- !u!1001 &1939322455
@@ -845,7 +862,7 @@ PrefabInstance:
     - target: {fileID: 1152322912071829630, guid: ca98a4c9766cede4d8ec30ed842470a9,
         type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: -0.000061035156
+      value: -0.00012207031
       objectReference: {fileID: 0}
     - target: {fileID: 1152322912071829630, guid: ca98a4c9766cede4d8ec30ed842470a9,
         type: 3}
@@ -892,8 +909,25 @@ PrefabInstance:
       propertyPath: m_SizeDelta.y
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7277910124912852510, guid: ca98a4c9766cede4d8ec30ed842470a9,
+        type: 3}
+      propertyPath: panelWrapper
+      value: 
+      objectReference: {fileID: 2075687831}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: ca98a4c9766cede4d8ec30ed842470a9, type: 3}
+--- !u!114 &2075687831 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1152322912071829625, guid: ca98a4c9766cede4d8ec30ed842470a9,
+    type: 3}
+  m_PrefabInstance: {fileID: 1939322455}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2950dd5f9f8eb4642beb885226925471, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1001 &8433910064310725686
 PrefabInstance:
   m_ObjectHideFlags: 0

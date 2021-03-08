@@ -21,7 +21,7 @@ namespace Commands {
                 sb.AppendLine($"{client.Value.Name}{(isSelf ? " <b>(You)</b>":"")}");
             }
             
-            server.SendMessage(sb.ToString().TrimEnd('\n', ' ', '\t'), sender);
+            server.QueueMessage(sb.ToString().TrimEnd('\n', ' ', '\t'), sender);
         }
     }
 }

@@ -7,16 +7,15 @@ public class TCPServerSample  {
 	 */
 	public static void Main (string[] args)
 	{
-		var server = new Server(25.0f, true);
+		var server = new Server(5.0f, true);
 		server.StartListening();
 		while (true) {
-			server.AcceptClients();
-			server.ProcessClients();
-			server.CleanupClients();
+			server.AcceptClients(); // accept new clients
+			server.ProcessQueue(); // process queued messages
+			server.ProcessClients(); // process clients for new messages
+			server.CleanupClients(); // remove faulty/disconnected clients
 			
-			//Although technically not required, now that we are no longer blocking, 
-			//it is good to cut your CPU some slack
-			Thread.Sleep(10);
+			Thread.Sleep(25);
 		}
 	}
 }
