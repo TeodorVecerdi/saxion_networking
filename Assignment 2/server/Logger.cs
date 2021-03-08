@@ -8,13 +8,12 @@ using System.Text;
 /// Inspired by the Unity implementation is the Debug class. Gets stripped from Release builds.
 /// </summary>
 public static class Logger {
-    private const string LogFormat = " at {0}.{1}:{2} ({3}:line {2})";
+    private const string logFormat = " [{0}.{1} (at {3}:{2})]";
 
     private static string GetString(object message) {
         if (message == null) return "Null";
 
-        var formattable = message as IFormattable;
-        return formattable != null ? formattable.ToString(null, CultureInfo.InvariantCulture) : message.ToString();
+        return message is IFormattable formattable ? formattable.ToString(null, CultureInfo.InvariantCulture) : message.ToString();
     }
 
     public static void Except(Exception exception, bool includeStackTrace = false) {
@@ -46,8 +45,9 @@ public static class Logger {
         Console.Write("[" + messageTitle + "]");
         Console.ResetColor();
         Console.Write(" " + GetString(message));
+        Console.ForegroundColor = ConsoleColor.DarkGray;
+        Console.WriteLine(logFormat, className, method, lineNumber, fileName);
         Console.ResetColor();
-        Console.WriteLine(LogFormat, className, method, lineNumber, fileName);
 #endif
     }
 
@@ -75,8 +75,8 @@ public static class Logger {
         Console.ResetColor();
         Console.ForegroundColor = ConsoleColor.DarkYellow;
         Console.Write(" " + GetString(message));
-        Console.ResetColor();
-        Console.WriteLine(LogFormat, className, method, lineNumber, fileName);
+        Console.ForegroundColor = ConsoleColor.DarkGray;
+        Console.WriteLine(logFormat, className, method, lineNumber, fileName);
         Console.ResetColor();
 #endif
     }
@@ -105,8 +105,8 @@ public static class Logger {
         Console.ResetColor();
         Console.ForegroundColor = ConsoleColor.DarkRed;
         Console.Write(" " + GetString(message));
-        Console.ResetColor();
-        Console.WriteLine(LogFormat, className, method, lineNumber, fileName);
+        Console.ForegroundColor = ConsoleColor.DarkGray;
+        Console.WriteLine(logFormat, className, method, lineNumber, fileName);
         Console.ResetColor();
 #endif
     }

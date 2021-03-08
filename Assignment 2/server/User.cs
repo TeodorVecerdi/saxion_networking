@@ -14,7 +14,7 @@ public class User {
     }
 
     public void OnHeartbeat() {
-        if (Server.verbose) Logger.Info($"Received heartbeat from {this}", "INFO-VERBOSE");
+        if (Server.Verbose) Logger.Info($"Received heartbeat from {this}", "INFO-VERBOSE");
         
         lastHeartbeatTime = DateTime.Now;
     }
