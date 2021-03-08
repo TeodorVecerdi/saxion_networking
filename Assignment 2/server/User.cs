@@ -1,22 +1,24 @@
-﻿using System;
+using System;
 
-public class User {
+internal class User {
     private string name;
     private DateTime lastHeartbeatTime;
     
-    public string Name => name;
-    public DateTime LastHeartbeatTime => lastHeartbeatTime;
+    internal string Name => name;
+    internal DateTime LastHeartbeatTime => lastHeartbeatTime;
 
     /// <summary>Initializes a new instance of the <see cref="T:User" /> class.</summary>
-    public User(string name) {
+    internal User(string name) {
         this.name = name;
         lastHeartbeatTime = DateTime.Now;
     }
 
-    public void OnHeartbeat() {
-        if (Server.Verbose) Logger.Info($"Received heartbeat from {this}", "INFO-VERBOSE");
-        
+    internal void OnHeartbeat() {
         lastHeartbeatTime = DateTime.Now;
+    }
+
+    internal void UpdateNickname(string newNickname) {
+        name = newNickname.ToLowerInvariant();
     }
 
     /// <summary>Returns a string that represents the current object.</summary>
