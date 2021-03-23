@@ -4,7 +4,7 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.Serialization;
 
-namespace shared {
+namespace shared.serialization {
     public static class SerializationHelper {
         private const string serializeMethodName = "Serialize";
         private const string deserializeMethodName = "Deserialize";
@@ -12,8 +12,8 @@ namespace shared {
 
         static SerializationHelper() {
             foreach (var serializer in typeof(SerializationHelper).Assembly.GetTypes().Where(t => t.IsClass && 
-                                            !t.IsAbstract && t.BaseType != null && t.BaseType.IsGenericType && 
-                                            t.BaseType.GetGenericTypeDefinition() == typeof(Serializer<>))) {
+                                                                                                  !t.IsAbstract && t.BaseType != null && t.BaseType.IsGenericType && 
+                                                                                                  t.BaseType.GetGenericTypeDefinition() == typeof(Serializer<>))) {
                 var serializerType = serializer.BaseType.GetGenericArguments()[0];
                 MethodInfo serialize = null, deserialize = null;
                 foreach (var method in serializer.GetMethods(BindingFlags.Public | BindingFlags.Instance)
@@ -34,22 +34,29 @@ namespace shared {
                     return;
                 }
                 var serializerInst = Activator.CreateInstance(serializer); 
-                methods.Add(serializerType.GUID.GetHashCode(), new SerializerFactory(serialize, deserialize, serializerInst));
+                methods.Add(TypeIDCache.GetID(serializerType), new SerializerFactory(serialize, deserialize, serializerInst));
+            }
+
+            foreach (var keyValuePair in methods) {
+                Console.WriteLine($"{keyValuePair.Value.Serialize.DeclaringType.FullName}");
             }
         }
 
-        public static void Serialize<T>(T obj, Packet packet) {
-            var typeId = typeof(T).GUID.GetHashCode();
+        public static byte[] Serialize<T>(T obj) {
+            var typeId = TypeIDCache.GetID(typeof(T));
             if (!methods.ContainsKey(typeId)) {
                 throw new SerializationException($"Could not find Serializer for type {typeof(T)}.");
             }
+            var packet = new Packet();
             packet.Write(typeId);
             var serializer = methods[typeId];
             serializer.Serialize.Invoke(serializer.Serializer, new object[]{obj, packet});
+            return packet.GetBytes();
         }
 
-        public static object Deserialize(Packet packet) {
-            var typeId = packet.ReadInt();
+        public static object Deserialize(byte[] data) {
+            var packet = new Packet(data);
+            var typeId = packet.Read<int>();
             if (!methods.ContainsKey(typeId)) {
                 throw new SerializationException($"Could not find serializer with Type Id {typeId}.");
             }
