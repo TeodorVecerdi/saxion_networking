@@ -1,11 +1,13 @@
-﻿namespace shared {
-    public class ServerTimeoutSerializer : Serializer<ServerTimeout> {
-        public override void Serialize(ServerTimeout obj, Packet packet) {
-            packet.Write(obj.Timeout);
+﻿using shared.protocol;
+
+namespace shared.serialization {
+    public class HeartbeatSerializer : Serializer<Heartbeat> {
+        public override void Serialize(Heartbeat obj, Packet packet) {
+            // does nothing
         }
 
-        public override ServerTimeout Deserialize(Packet packet) {
-            return new ServerTimeout(packet.ReadFloat());
+        public override Heartbeat Deserialize(Packet packet) {
+            return new Heartbeat();
         }
     }
 }

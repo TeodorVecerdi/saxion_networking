@@ -1,14 +1,11 @@
 ﻿using System.Threading;
-using shared;
+using shared.protocol;
+using shared.serialization;
 
 namespace Server {
-    /**
-     * This class implements a simple tcp echo server.
-     * Read carefully through the comments below.
-     * Note that the server does not contain any sort of error handling.
-     */
     public static class Application {
         public static void Main(string[] args) {
+            SerializationHelper.Serialize(new Heartbeat());
             var server = new TcpServer(verbose: true);
             
             server.StartListening();

@@ -1,9 +1,13 @@
-﻿namespace shared.protocol {
-    public class Message {
-        public string Text { get; }
+﻿using System.Collections.Generic;
 
-        public Message(string text) {
-            Text = text;
+namespace shared.protocol {
+    public class Command {
+        public string CommandName { get; }
+        public List<string> Parameters { get; }
+
+        public Command(string command, List<string> parameters) {
+            CommandName = command;
+            Parameters = parameters;
         }
     }
 }

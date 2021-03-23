@@ -1,10 +1,9 @@
-﻿namespace shared.protocols {
+﻿namespace shared.protocol {
     public class ServerTimeout {
-        private readonly float timeout;
-        public float Timeout => timeout;
+        public float Timeout { get; }
 
         public ServerTimeout(float timeout) {
-            this.timeout = timeout;
+            Timeout = timeout;
         }
     }
 }

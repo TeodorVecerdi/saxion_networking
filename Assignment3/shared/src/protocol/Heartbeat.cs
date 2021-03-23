@@ -1,4 +1,4 @@
-﻿namespace shared.protocols {
+﻿namespace shared.protocol {
     public class Heartbeat {
     }
 }

@@ -1,7 +1,6 @@
-﻿using System;
-using System.IO;
+﻿using System.IO;
 
-namespace shared {
+namespace shared.serialization {
     /**
 	 * The Packet class provides a simple wrapper around an array of bytes (in the form of a MemoryStream), 
 	 * that allows us to write/read values to/from the Packet easily. 
@@ -30,58 +29,60 @@ namespace shared {
         }
 
         /// WRITE METHODS
-        public void Write(bool pBool) {
+        private void Write(bool pBool) {
             writer.Write(pBool);
         }
 
-        public void Write(int pInt) {
+        private void Write(int pInt) {
             writer.Write(pInt);
         }
 
-        public void Write(float @float) {
+        private void Write(float @float) {
             writer.Write(@float);
         }
 
-        public void Write(string pString) {
+        private void Write(string pString) {
             writer.Write(pString);
         }
 
         public void Write<T>(T obj) {
-
             if (typeof(T) == typeof(bool)) {
                 Write((bool) (object) obj);
                 return;
             }
 
             if (typeof(T) == typeof(int)) {
-                Write((int)(object)obj);
+                Write((int) (object) obj);
                 return;
             }
+
             if (typeof(T) == typeof(float)) {
-                Write((float)(object)obj);
+                Write((float) (object) obj);
                 return;
             }
+
             if (typeof(T) == typeof(string)) {
-                Write((string)(object)obj);
+                Write((string) (object) obj);
                 return;
             }
-            SerializationHelper.Serialize(obj, this);
+
+            writer.Write(SerializationHelper.Serialize(obj));
         }
 
         /// READ METHODS
-        public bool ReadBool() {
+        private bool ReadBool() {
             return reader.ReadBoolean();
         }
 
-        public int ReadInt() {
+        private int ReadInt() {
             return reader.ReadInt32();
         }
 
-        public float ReadFloat() {
+        private float ReadFloat() {
             return reader.ReadSingle();
         }
 
-        public string ReadString() {
+        private string ReadString() {
             return reader.ReadString();
         }
 
@@ -90,7 +91,7 @@ namespace shared {
             if (typeof(T) == typeof(int)) return (T) (object) ReadInt();
             if (typeof(T) == typeof(float)) return (T) (object) ReadFloat();
             if (typeof(T) == typeof(string)) return (T) (object) ReadString();
-            return (T) SerializationHelper.Deserialize(this);
+            return (T) SerializationHelper.Deserialize(GetBytes());
         }
 
         /**

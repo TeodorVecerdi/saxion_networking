@@ -1,13 +1,13 @@
 ﻿using shared.protocol;
 
 namespace shared.serialization {
-    public class ServerTimeoutSerializer : Serializer<ServerTimeout> {
-        public override void Serialize(ServerTimeout obj, Packet packet) {
-            packet.Write(obj.Timeout);
+    public class MessageSerializer : Serializer<Message> {
+        public override void Serialize(Message obj, Packet packet) {
+            packet.Write(obj.Text);
         }
 
-        public override ServerTimeout Deserialize(Packet packet) {
-            return new ServerTimeout(packet.ReadFloat());
+        public override Message Deserialize(Packet packet) {
+            return new Message(packet.Read<string>());
         }
     }
 }

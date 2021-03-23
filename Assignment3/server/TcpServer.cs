@@ -5,6 +5,8 @@ using System.Net;
 using System.Net.Sockets;
 using System.Runtime.Serialization;
 using shared;
+using shared.protocol;
+using shared.serialization;
 
 namespace Server {
     public class TcpServer {
@@ -18,6 +20,8 @@ namespace Server {
         private readonly int port;
         private readonly TcpListener listener;
         private readonly List<TcpClient> faultyClients;
+        private readonly Queue<QueuedMessage> messageQueue;
+        private readonly Queue<QueuedMessage> broadcastQueue;
 
         public TcpServer(float clientTimeout = defaultClientTimeout, int port = defaultPort, bool verbose = false) {
             this.clientTimeout = clientTimeout;
@@ -27,7 +31,8 @@ namespace Server {
             faultyClients = new List<TcpClient>();
             Clients = new Dictionary<TcpClient, User>();
             listener = new TcpListener(IPAddress.Any, port);
-            
+            messageQueue = new Queue<QueuedMessage>();
+            broadcastQueue = new Queue<QueuedMessage>();
         }
 
         public void StartListening() {
@@ -57,7 +62,15 @@ namespace Server {
         }
 
         public void ProcessQueue() {
-            throw new NotImplementedException();
+            while (broadcastQueue.Count > 0) {
+                var message = broadcastQueue.Dequeue();
+                BroadcastMessage(message.Message, message.Client, message.Predicate);
+            }
+
+            while (messageQueue.Count > 0) {
+                var message = messageQueue.Dequeue();
+                SendMessage(message.Message, message.Client);
+            }
         }
 
         public void ProcessClients() {
@@ -66,15 +79,9 @@ namespace Server {
                 var stream = client.Key.GetStream();
                 byte[] inBytes = StreamUtil.Read(stream);
                 
-                // TODO: Deserialize bytes
-                // var received = Encoding.UTF8.GetString(inBytes);
-                // if (Verbose) Logger.Info($"Received message [{received}] from client {client.Value}", "INFO-VERBOSE");
-
                 client.Value.LastHeartbeat = DateTime.Now;
-                // TODO: Process request
-                // if (!ProcessSpecial(client.Key, received)) {
-                    // ProcessMessage(client.Key, received);
-                // }
+                var obj = SerializationHelper.Deserialize(inBytes);
+                ProcessObject(obj, client.Key);
             }
         }
 
@@ -100,6 +107,45 @@ namespace Server {
             RemoveFaultyClients();
         }
 
+        private void ProcessObject(object obj, TcpClient sender) {
+            if (obj is Message message) {
+                return;
+            }
+
+            if (obj is Command command) {
+                HandleCommand(command);
+                return;
+            }
+        }
+
+        internal void QueueMessage<T>(T message, TcpClient target) {
+            messageQueue.Enqueue(new QueuedMessage(message, target, null));
+        }
+
+        internal void QueueBroadcast<T>(T message, TcpClient except = null, Func<TcpClient, bool> predicate = null) {
+            broadcastQueue.Enqueue(new QueuedMessage(message, except, predicate));
+        }
+
+        internal void SendMessage<T>(T message, TcpClient client) {
+            try {
+                var outBytes = SerializationHelper.Serialize(message);
+                StreamUtil.Write(client.GetStream(), outBytes);
+            } catch (SerializationException e) {
+                Logger.Except(e);
+            } catch (IOException e) {
+                Logger.Warn($"Client {Clients[client]} disconnected!");
+                faultyClients.Add(client);
+            }
+        }
+
+        internal void BroadcastMessage<T>(T message, TcpClient except = null, Func<TcpClient, bool> predicate = null) {
+            foreach (var client in Clients) {
+                if (predicate != null && !predicate(client.Key)) continue;
+                if (client.Key == except) continue;
+                SendMessage(message, client.Key);
+            }
+        }
+
         private void RemoveFaultyClients() {
             foreach (var client in faultyClients) {
                 Logger.Warn($"Removing invalid client {Clients[client]} (could be a disconnected client)");
@@ -115,17 +161,15 @@ namespace Server {
             faultyClients.Clear();
         }
 
-        private void SendMessage<T>(T message, TcpClient client) {
-            try {
-                var packet = new Packet();
-                SerializationHelper.Serialize(message, packet);
-                var outBytes = packet.GetBytes();
-                StreamUtil.Write(client.GetStream(), outBytes);
-            } catch (SerializationException e) {
-                Logger.Except(e);
-            } catch (IOException e) {
-                Logger.Warn($"Client {Clients[client]} disconnected!");
-                faultyClients.Add(client);
+        private readonly struct QueuedMessage {
+            internal readonly object Message;
+            internal readonly TcpClient Client;
+            internal readonly Func<TcpClient, bool> Predicate;
+
+            public QueuedMessage(object message, TcpClient client, Func<TcpClient, bool> predicate) {
+                Message = message;
+                Client = client;
+                Predicate = predicate;
             }
         }
     }
