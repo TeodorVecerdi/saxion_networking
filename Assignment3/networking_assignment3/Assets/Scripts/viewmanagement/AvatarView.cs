@@ -21,6 +21,7 @@ public class AvatarView : MonoBehaviour
 
     [Tooltip("This list of skin prefabs this avatar can use. If it has an animator, we also call SetBool(IsWalking, ...) on it.")]
     [SerializeField] private List<GameObject> prefabs = null;
+    [SerializeField] private GameObject ringGameObject;
     private GameObject _skin = null;    //the current chosen skin
     private int _skinId = -1;           //the skin id so we can prevent setting duplicates
 
@@ -86,6 +87,10 @@ public class AvatarView : MonoBehaviour
 
         //throw some scaling effect in there
         _skin.transform.DOScale(1, 1).From(0.01f, true).SetEase(Ease.OutElastic);
+    }
+
+    public void SetRingVisible(bool visible) {
+        ringGameObject.SetActive(visible);
     }
 
     /**
