@@ -1,9 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using System.Runtime.Serialization;
+using shared;
 using shared.protocol;
 using shared.serialization;
 
@@ -12,7 +13,6 @@ namespace Server {
         private const float defaultClientTimeout = 5.0f;
         private const int defaultPort = 55555;
         internal static bool Verbose;
-
 
         private readonly float clientTimeout;
         private readonly int port;
@@ -58,19 +58,22 @@ namespace Server {
 
                 Logger.Info($"Accepted new client {user}");
                 SendMessage(new HelloWorld(clientTimeout, user.Id), client);
-                QueueBroadcast(new ClientJoined(user.Id, user.SkinId, user.PositionX, user.PositionZ), client);
+                var connectedClients = new ConnectedClients(clients.Where(x => x.Key != client)
+                                       .Select(x => new UserModel(x.Value.Id, x.Value.SkinId, x.Value.PositionX, x.Value.PositionY, x.Value.PositionZ)));
+                QueueMessage(connectedClients, client);
+                QueueBroadcast(new ClientJoined(user.Id, user.SkinId, user.PositionX, user.PositionY, user.PositionZ));
             }
         }
 
         public void ProcessQueue() {
             while (broadcastQueue.Count > 0) {
                 var message = broadcastQueue.Dequeue();
-                BroadcastMessage(message.Message, message.Client, message.Predicate);
+                BroadcastMessage(message.Message, message.Client, message.Predicate, message.TypeId);
             }
 
             while (messageQueue.Count > 0) {
                 var message = messageQueue.Dequeue();
-                SendMessage(message.Message, message.Client);
+                SendMessage(message.Message, message.Client, message.TypeId);
             }
         }
 
@@ -80,10 +83,10 @@ namespace Server {
                 var stream = client.Key.GetStream();
                 byte[] inBytes = StreamUtil.Read(stream);
                 client.Value.LastHeartbeat = DateTime.Now;
-                
+
                 var obj = SerializationHelper.Deserialize(inBytes);
                 if (Verbose)
-                    Logger.Info($"Received message [{obj.GetType().Name}] from client {client.Value.Id}", "INFO-VERBOSE");
+                    Logger.Info($"Received object [{obj.GetType().Name}] from client {client.Value.Id}", "INFO-VERBOSE");
                 ProcessObject(obj, client.Key);
             }
         }
@@ -111,24 +114,23 @@ namespace Server {
         }
 
         private void ProcessObject(object obj, TcpClient sender) {
-            if (obj is Message message) {
-                QueueBroadcast(message);
-                return;
-            }
+            switch (obj) {
+                case Message message:
+                    QueueBroadcast(message);
+                    return;
+                case Command command:
+                    HandleCommand(sender, command);
+                    return;
+                case PositionChangeRequest positionChangeRequest:
+                    // check if position is valid
+                    var deltaCenter = (positionChangeRequest.X * positionChangeRequest.X + positionChangeRequest.Z * positionChangeRequest.Z);
+                    var valid = Constants.SpawnRange * Constants.SpawnRange - deltaCenter > 0;
+                    if (!valid) return;
 
-            if (obj is Command command) {
-                HandleCommand(sender, command);
-                return;
-            }
-
-            if (obj is PositionChangeRequest positionChangeRequest) {
-                // check if position is valid
-                var deltaCenter = (positionChangeRequest.X * positionChangeRequest.X + positionChangeRequest.Z * positionChangeRequest.Z);
-                var valid = Constants.SpawnRange * Constants.SpawnRange - deltaCenter > 0;
-                if (!valid) return;
-                var positionChanged = new PositionChanged(positionChangeRequest.UserId, positionChangeRequest.X, positionChangeRequest.Z);
-                QueueBroadcast(positionChanged);
-                return;
+                    clients[sender].UpdatePosition(positionChangeRequest.X, positionChangeRequest.Y, positionChangeRequest.Z);
+                    var positionChanged = new PositionChanged(positionChangeRequest.UserId, positionChangeRequest.X, positionChangeRequest.Y, positionChangeRequest.Z);
+                    QueueBroadcast(positionChanged);
+                    return;
             }
         }
 
@@ -146,42 +148,45 @@ namespace Server {
                 var dz = clientPair.Value.PositionZ - sender.PositionZ;
                 // distance = 2 
                 if (dx * dx + dz * dz > 4.0f) continue;
-                
+
                 QueueMessage(messagePacket, clientPair.Key);
             }
         }
 
         internal void QueueMessage<T>(T message, TcpClient target) {
-            messageQueue.Enqueue(new QueuedMessage(message, target, null));
+            messageQueue.Enqueue(new QueuedMessage(TypeIdCache.Get(typeof(T)), message, target, null));
         }
 
         internal void QueueBroadcast<T>(T message, TcpClient except = null, Func<TcpClient, bool> predicate = null) {
-            broadcastQueue.Enqueue(new QueuedMessage(message, except, predicate));
+            broadcastQueue.Enqueue(new QueuedMessage(TypeIdCache.Get(typeof(T)), message, except, predicate));
         }
 
-        internal void SendMessage<T>(T message, TcpClient client) {
+        internal void SendMessage<T>(T message, TcpClient client, int? typeId = null) {
             try {
-                var outBytes = SerializationHelper.Serialize(message);
+                var outBytes = typeId.HasValue ? SerializationHelper.Serialize(message, typeId.Value) : SerializationHelper.Serialize(message);
                 StreamUtil.Write(client.GetStream(), outBytes);
-            } catch (SerializationException e) {
-                Logger.Except(e);
+                if (Verbose) Logger.Info($"Sent object [{message.GetType().Name}] to client {clients[client].Id}", "INFO-VERBOSE");
             } catch (IOException e) {
-                Logger.Warn($"Client {clients[client]} disconnected!");
+                Logger.Warn($"Client {clients[client].Id} disconnected!");
                 faultyClients.Add(client);
-            }
+            } catch (Exception e) {
+                Logger.Except(e, true);
+            } 
         }
 
-        internal void BroadcastMessage<T>(T message, TcpClient except = null, Func<TcpClient, bool> predicate = null) {
+        internal void BroadcastMessage<T>(T message, TcpClient except = null, Func<TcpClient, bool> predicate = null, int? typeId = null) {
+            if (Verbose) Logger.Info($"Broadcasting object [{message.GetType().Name}]", "INFO-VERBOSE");
             foreach (var client in clients) {
                 if (predicate != null && !predicate(client.Key)) continue;
                 if (client.Key == except) continue;
-                SendMessage(message, client.Key);
+                SendMessage(message, client.Key, typeId);
             }
         }
 
         private void RemoveFaultyClients() {
             foreach (var client in faultyClients) {
                 Logger.Warn($"Removing invalid client {clients[client].Id} (could be a disconnected client)");
+                QueueBroadcast(new ClientLeft(clients[client].Id), client);
                 clients.Remove(client);
 
                 try {
@@ -209,11 +214,13 @@ namespace Server {
         }
 
         private readonly struct QueuedMessage {
+            internal readonly int TypeId;
             internal readonly object Message;
             internal readonly TcpClient Client;
             internal readonly Func<TcpClient, bool> Predicate;
 
-            public QueuedMessage(object message, TcpClient client, Func<TcpClient, bool> predicate) {
+            public QueuedMessage(int typeId, object message, TcpClient client, Func<TcpClient, bool> predicate) {
+                TypeId = typeId;
                 Message = message;
                 Client = client;
                 Predicate = predicate;

@@ -91,7 +91,7 @@ namespace shared.serialization {
             if (typeof(T) == typeof(int)) return (T) (object) ReadInt();
             if (typeof(T) == typeof(float)) return (T) (object) ReadFloat();
             if (typeof(T) == typeof(string)) return (T) (object) ReadString();
-            return (T) SerializationHelper.Deserialize(GetBytes());
+            return (T) SerializationHelper.Deserialize(this);
         }
 
         /**
@@ -103,6 +103,10 @@ namespace shared.serialization {
             //MemoryStream can either return the whole buffer or simply the part of the buffer that has been filled,
             //which is what we do here using ToArray()
             return ((MemoryStream) writer.BaseStream).ToArray();
+        }
+
+        public byte[] GetBytesReadMode() {
+            return ((MemoryStream) reader.BaseStream).ToArray();
         }
     }
 }

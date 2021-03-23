@@ -1,11 +1,22 @@
-﻿using System.Threading;
+﻿using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Threading;
+using shared;
 using shared.protocol;
 using shared.serialization;
 
 namespace Server {
     public static class Application {
         public static void Main(string[] args) {
-            SerializationHelper.Serialize(new Heartbeat());
+            var users = new List<UserModel> {new User().ToUserModel(), new User().ToUserModel(), new User().ToUserModel()};
+            var conn = new ConnectedClients(users);
+            var s = SerializationHelper.Serialize(conn);
+            var ds = SerializationHelper.Deserialize(s);
+            Console.WriteLine($"is ds null? {ds == null}");
+            Console.WriteLine($"is ds ConnectedClients? {ds is ConnectedClients}");
+            Console.WriteLine($"correct count? {(ds as ConnectedClients).Users.Count}");
+
             var server = new TcpServer(verbose: true);
             
             server.StartListening();

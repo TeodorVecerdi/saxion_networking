@@ -6,11 +6,12 @@ namespace shared.serialization {
             packet.Write(obj.UserId);
             packet.Write(obj.SkinId);
             packet.Write(obj.X);
+            packet.Write(obj.Y);
             packet.Write(obj.Z);
         }
 
         public override ClientJoined Deserialize(Packet packet) {
-            return new ClientJoined(packet.Read<int>(),packet.Read<int>(), packet.Read<float>(), packet.Read<float>());
+            return new ClientJoined(packet.Read<int>(),packet.Read<int>(), packet.Read<float>(), packet.Read<float>(), packet.Read<float>());
         }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using System;
+using shared;
 
 namespace Server {
     public class User {
@@ -8,6 +9,7 @@ namespace Server {
         internal readonly int Id;
         internal int SkinId;
         internal float PositionX;
+        internal float PositionY;
         internal float PositionZ;
         
         internal User() {
@@ -20,12 +22,9 @@ namespace Server {
             Id = nextId++;
             SkinId = Rand.Range(Constants.SkinCount);
             PositionX = cAngle * distance;
+            PositionY = 0;
             PositionZ = sAngle * distance;
-        }
-
-        internal void UpdatePosition(float x, float z) {
-            PositionX = x;
-            PositionZ = z;
+            LastHeartbeat = DateTime.Now;
         }
 
         internal void Reskin() {
@@ -34,6 +33,16 @@ namespace Server {
                 newSkin = Rand.Range(Constants.SkinCount);
             } while (newSkin == SkinId);
             SkinId = newSkin;
+        }
+
+        internal UserModel ToUserModel() {
+            return new UserModel(Id, SkinId, PositionX, PositionY, PositionZ);
+        }
+
+        public void UpdatePosition(float x, float y, float z) {
+            PositionX = x;
+            PositionY = y;
+            PositionZ = z;
         }
     }
 }
