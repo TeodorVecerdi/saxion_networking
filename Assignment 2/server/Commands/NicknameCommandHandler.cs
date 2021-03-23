@@ -20,14 +20,14 @@ namespace Commands {
             var newNickname = command.Split(' ')[1].Trim();
             var count = server.Clients.Count(pair => string.Equals(newNickname.ToLowerInvariant(), pair.Value.Name));
             if (count != 0) {
-                server.QueueMessage($"This nickname is already taken.", sender);
+                server.QueueMessage($"<i>This nickname is already taken.</i>", sender);
                 return;
             }
 
             var oldNickname = server.Clients[sender].Name;
             server.Clients[sender].UpdateNickname(newNickname);
-            server.QueueMessage($"Your nickname is now <b>{newNickname}</b>", sender);
-            server.QueueBroadcast($"User <b>{oldNickname}</b> changed their nickname to <b>{newNickname}</b>", sender);
+            server.QueueMessage($"<i>Your nickname is now <b>{newNickname}</b></i>", sender);
+            server.QueueBroadcast($"<i>User <b>{oldNickname}</b> changed their nickname to <b>{newNickname}</b></i>", sender);
         }
     }
 }

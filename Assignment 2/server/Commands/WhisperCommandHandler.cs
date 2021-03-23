@@ -24,13 +24,13 @@ namespace Commands {
             // Find target
             var targetNickname = split[1].Trim().ToLowerInvariant();
             if (server.Clients[sender].Name == targetNickname) {
-                server.QueueMessage($"You cannot whisper to yourself!", sender);
+                server.QueueMessage($"<i>You cannot whisper to yourself!</i>", sender);
                 return;
             }
             
             var targets = server.Clients.Where(x => x.Value.Name == targetNickname).ToList();
             if (targets.Count < 1) {
-                server.QueueMessage($"Target <b>{targetNickname}</b> does not exist.", sender);
+                server.QueueMessage($"<i>Target <b>{targetNickname}</b> does not exist.</i>", sender);
                 return;
             }
             var target = targets[0];
@@ -43,8 +43,8 @@ namespace Commands {
             var message = sb.ToString().Trim();
             
             // Emit
-            server.QueueMessage($"You whisper to <b>{targetNickname}</b> {message}", sender);
-            server.QueueMessage($"<b>{server.Clients[sender].Name}</b> whispers {message}", target.Key);
+            server.QueueMessage($"<i>You whisper to <b>{targetNickname}</b> {message}</i>", sender);
+            server.QueueMessage($"<i><b>{server.Clients[sender].Name}</b> whispers {message}</i>", target.Key);
         }
     }
 }

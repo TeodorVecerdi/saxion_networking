@@ -10,37 +10,47 @@ using Shared;
 
 public class Server {
     private const float defaultClientTimeout = 5.0f;
+    internal const string defaultRoomName = "general";
 
     private readonly float clientTimeout;
     private readonly TcpListener listener;
 
     internal readonly List<ICommandHandler> Commands;
     internal readonly Dictionary<TcpClient, User> Clients;
+    internal readonly HashSet<string> Rooms;
     internal static bool Verbose;
 
     private readonly List<TcpClient> faultyClients;
     private readonly Queue<QueuedMessage> messageQueue;
     private readonly Queue<QueuedMessage> broadcastQueue;
+    private readonly int port;
 
-    public Server(float clientTimeout = defaultClientTimeout, bool verbose = false) {
+    public Server(float clientTimeout = defaultClientTimeout, bool verbose = false, int port = 55555) {
         this.clientTimeout = clientTimeout;
-        Verbose = verbose;
-        listener = new TcpListener(IPAddress.Any, 55555);
-        Clients = new Dictionary<TcpClient, User>();
         faultyClients = new List<TcpClient>();
         messageQueue = new Queue<QueuedMessage>();
         broadcastQueue = new Queue<QueuedMessage>();
+        this.port = port;
+        
+        listener = new TcpListener(IPAddress.Any, port);
+        Clients = new Dictionary<TcpClient, User>();
+        Rooms = new HashSet<string> {defaultRoomName};
+        Verbose = verbose;
 
         Commands = new List<ICommandHandler> {
             new HelpCommandHandler(),
             new ListCommandHandler(),
             new NicknameCommandHandler(),
-            new WhisperCommandHandler()
+            new WhisperCommandHandler(),
+            new ListRoomCommandHandler(),
+            new ListRoomsCommandHandler(),
+            new JoinRoomCommandHandler(),
+            new RoomCommandHandler()
         };
     }
 
     public void StartListening() {
-        Logger.Info($"Server started listening on port {55555}");
+        Logger.Info($"Server started listening on port {port}");
         listener.Start();
     }
 
@@ -52,21 +62,21 @@ public class Server {
     public void AcceptClients() {
         while (listener.Pending()) {
             var client = listener.AcceptTcpClient();
-            var user = new User($"guest{Clients.Keys.Count}");
+            var user = new User($"guest{Clients.Keys.Count}", defaultRoomName);
             Clients.Add(client, user);
 
             Logger.Info($"Accepted new client {user}");
             SendMessage($"TIMEOUT:{clientTimeout:F4}", client);
             
-            QueueMessage($"You joined the server as {user.Name}", client);
-            QueueBroadcast($"Client {user.Name} joined the server.", client);
+            QueueMessage($"<i>You joined the server as {user.Name}</i>", client);
+            QueueBroadcast($"<i>Client {user.Name} joined the server.</i>", client);
         }
     }
 
     public void ProcessQueue() {
         while (broadcastQueue.Count > 0) {
             var message = broadcastQueue.Dequeue();
-            BroadcastMessage(message.Message, message.Client);
+            BroadcastMessage(message.Message, message.Client, message.Predicate);
         }
 
         while (messageQueue.Count > 0) {
@@ -127,16 +137,17 @@ public class Server {
         faultyClients.Clear();
     }
 
-    internal void QueueBroadcast(string message, TcpClient except = null) {
-        broadcastQueue.Enqueue(new QueuedMessage(message, except));
+    internal void QueueBroadcast(string message, TcpClient except = null, Func<TcpClient, bool> predicate = null) {
+        broadcastQueue.Enqueue(new QueuedMessage(message, except, predicate));
     }
 
     internal void QueueMessage(string message, TcpClient target) {
-        messageQueue.Enqueue(new QueuedMessage(message, target));
+        messageQueue.Enqueue(new QueuedMessage(message, target, null));
     }
 
-    internal void BroadcastMessage(string message, TcpClient except = null) {
+    internal void BroadcastMessage(string message, TcpClient except = null, Func<TcpClient, bool> predicate = null) {
         foreach (var client in Clients) {
+            if (predicate != null && !predicate(client.Key)) continue;
             if (client.Key == except) continue;
             SendMessage(message, client.Key);
         }
@@ -153,15 +164,41 @@ public class Server {
         }
     }
 
+    internal void JoinOrCreateRoom(string roomName, TcpClient client) {
+        var oldRoom = Clients[client].Room;
+        if (oldRoom == roomName) {
+            QueueMessage($"<i>You are already in room <b>{roomName}</b></i>", client);
+            return;
+        }
+        Rooms.Add(roomName);
+        Clients[client].UpdateRoom(roomName);
+        
+        // Check to see if oldRoom still has people
+        var count = Clients.Values.Count(user => string.Equals(user.Room, oldRoom, StringComparison.Ordinal));
+        var deleted = false;
+        if (count == 0 && oldRoom != defaultRoomName) {
+            Rooms.Remove(oldRoom);
+            deleted = true;
+            if (Verbose) Logger.Info($"Room {oldRoom} was deleted.", "INFO-VERBOSE");
+        } else {
+            if (Verbose) Logger.Info($"Room {oldRoom} was not deleted because it has {count} people still in it. People: {string.Join(", ", Clients.Values.Where(user => user.Room == oldRoom).Select(user => user.Name))}", "INFO-VERBOSE");
+        }
+        
+        // Tell client that they joined a new room
+        QueueMessage($"<i>You are now in room <b>{roomName}</b></i>", client);
+        QueueBroadcast($"<i><b>{Clients[client].Name}</b> joined the room.</i>", client, tcpClient => Clients[tcpClient].Room == roomName);
+        if(!deleted) QueueBroadcast($"<i><b>{Clients[client].Name}</b> left the room.</i>", client, tcpClient => Clients[tcpClient].Room == oldRoom);
+    }
+
     private void ProcessMessage(TcpClient client, string message) {
         if (!message.StartsWith("MSG:")) {
-            Logger.Warn($"Unexpected message `{message}` from client {Clients[client]}. Kicking client.");
+            Logger.Error($"Unexpected message `{message}` from client {Clients[client]}. Kicking client.");
             faultyClients.Add(client);
             return;
         }
 
         var normalMessage = message.Substring(4); // get rid of MSG:
-        BroadcastMessage($"<b>{Clients[client].Name}</b>: {normalMessage}");
+        BroadcastMessage($"<b>{Clients[client].Name}</b>: {normalMessage}", predicate: tcpClient => Clients[tcpClient].Room == Clients[client].Room);
     }
 
     /// <summary>
@@ -185,14 +222,15 @@ public class Server {
 
     private void ProcessChatCommand(TcpClient client, string command) {
         var chatCommand = command.Split(' ')[0].Substring(1);
+        
         var commandHandler = GetCommandHandler(chatCommand);
         if (commandHandler == null) {
-            SendMessage($"Unknown chat command `/{chatCommand}`. To get a list of valid commands type `/help`.", client);
+            SendMessage($"<i>Unknown chat command `/{chatCommand}`. To get a list of valid commands type `/help`.</i>", client);
             return;
         }
 
         if (!commandHandler.IsValidSyntax(command)) {
-            SendMessage($"Invalid syntax for command `/{chatCommand}`. Syntax: `{commandHandler.Syntax}`.", client);
+            SendMessage($"<i>Invalid syntax for command `/{chatCommand}`. Syntax: `{commandHandler.Syntax}`.</i>", client);
             return;
         }
 
@@ -207,10 +245,12 @@ public class Server {
     private readonly struct QueuedMessage {
         internal readonly string Message;
         internal readonly TcpClient Client;
+        internal readonly Func<TcpClient, bool> Predicate;
 
-        public QueuedMessage(string message, TcpClient client) {
+        public QueuedMessage(string message, TcpClient client, Func<TcpClient, bool> predicate) {
             Message = message;
             Client = client;
+            Predicate = predicate;
         }
     }
 }

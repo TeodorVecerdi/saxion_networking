@@ -46,11 +46,11 @@ public class TCPChatClient : MonoBehaviour {
         EmitMessage("HEARTBEAT");
     }
 
-    private void EmitMessage(string message) {
+    private void EmitMessage(string message, bool skipEncoding = false) {
         try {
-            var outBytes = ServerUtility.EncodeMessageAsBytes(message);
+            var outBytes = ServerUtility.EncodeMessageAsBytes(message, skipEncoding);
             lastHeartbeatTime = DateTime.Now;
-            if(verbose) Debug.Log($"Sent message: {ServerUtility.EncodeMessage(message)}");
+            if(verbose) Debug.Log($"Sent message: {ServerUtility.EncodeMessage(message, skipEncoding)}");
             StreamUtil.Write(client.GetStream(), outBytes);
         } catch (Exception e) {
             panelWrapper.AddOutput(e.Message);
@@ -84,6 +84,11 @@ public class TCPChatClient : MonoBehaviour {
     private void OnTextEntered(string input) {
         if (string.IsNullOrEmpty(input)) return;
         panelWrapper.ClearInput();
+        if (string.Equals(input, "HEARTBEAT", StringComparison.Ordinal) || input.StartsWith("TIMEOUT")) {
+            input = $"MSG:{input}";
+            EmitMessage(input, true);
+            return;
+        } 
         EmitMessage(input);
     }
 

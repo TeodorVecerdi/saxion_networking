@@ -42,8 +42,12 @@
       <Link>Shared\ServerUtility.cs</Link>
     </Compile>
     <Compile Include="Commands\HelpCommandHandler.cs" />
+    <Compile Include="Commands\JoinRoomCommandHandler.cs" />
     <Compile Include="Commands\ListCommandHandler.cs" />
+    <Compile Include="Commands\ListRoomCommandHandler.cs" />
+    <Compile Include="Commands\ListRoomsCommandHandler.cs" />
     <Compile Include="Commands\NicknameCommandHandler.cs" />
+    <Compile Include="Commands\RoomCommandHandler.cs" />
     <Compile Include="Commands\WhisperCommandHandler.cs" />
     <Compile Include="ICommandHandler.cs" />
     <Compile Include="Logger.cs" />
