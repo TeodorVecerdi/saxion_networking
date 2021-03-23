@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.Serialization;
 using shared;
 
 namespace Server {
@@ -114,14 +116,17 @@ namespace Server {
         }
 
         private void SendMessage<T>(T message, TcpClient client) {
-            /*var typeId = typeof(T).GUID.GetHashCode();
-            if (!serializers.ContainsKey(typeId)) {
-                Logger.Error($"Could not find serializer for type {typeof(T).FullName}");
-                return;
+            try {
+                var packet = new Packet();
+                SerializationHelper.Serialize(message, packet);
+                var outBytes = packet.GetBytes();
+                StreamUtil.Write(client.GetStream(), outBytes);
+            } catch (SerializationException e) {
+                Logger.Except(e);
+            } catch (IOException e) {
+                Logger.Warn($"Client {Clients[client]} disconnected!");
+                faultyClients.Add(client);
             }
-
-            var serializerType = serializers[typeId];
-            var inst =  Activator.CreateInstance();*/
         }
     }
 }

@@ -1,5 +1,5 @@
 ﻿namespace shared {
-    public class ServerTimeout : ISerializable {
+    public class ServerTimeout {
         private readonly float timeout;
         public float Timeout => timeout;
 

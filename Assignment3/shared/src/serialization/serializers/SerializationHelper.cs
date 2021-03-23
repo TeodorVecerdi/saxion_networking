@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.Serialization;
 
 namespace shared {
     public static class SerializationHelper {
@@ -40,25 +41,26 @@ namespace shared {
         public static void Serialize<T>(T obj, Packet packet) {
             var typeId = typeof(T).GUID.GetHashCode();
             if (!methods.ContainsKey(typeId)) {
-                throw new ArgumentException($"Could not find serializer for type {typeof(T)}.", nameof(obj));
+                throw new SerializationException($"Could not find Serializer for type {typeof(T)}.");
             }
             packet.Write(typeId);
             var serializer = methods[typeId];
             serializer.Serialize.Invoke(serializer.Serializer, new object[]{obj, packet});
         }
 
-        public static ISerializable Deserialize(Packet packet) {
+        public static object Deserialize(Packet packet) {
             var typeId = packet.ReadInt();
             if (!methods.ContainsKey(typeId)) {
-                throw new InvalidOperationException($"Could not find serializer with Type Id {typeId}.");
+                throw new SerializationException($"Could not find serializer with Type Id {typeId}.");
             }
             var deserializer = methods[typeId];
             var obj = deserializer.Deserialize.Invoke(deserializer.Serializer, new object[] {packet});
-            return (ISerializable) obj;
+            return obj;
         }
         
         private class SerializerFactory {
             public readonly MethodInfo Serialize;
+            // ReSharper disable once MemberHidesStaticFromOuterClass
             public readonly MethodInfo Deserialize;
             public readonly object Serializer;
 

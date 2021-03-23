@@ -9,17 +9,8 @@ namespace Server {
      */
     public static class Application {
         public static void Main(string[] args) {
-            var serverTimeout = new ServerTimeout(75f);
-            var packet = new Packet();
-            SerializationHelper.Serialize(serverTimeout, packet);
-            var readPacket = new Packet(packet.GetBytes());
-            var deserialized = SerializationHelper.Deserialize(readPacket);
-            Logger.Info($"Is deserialized null? {deserialized == null}");
-            Logger.Info($"Is deserialized type ServerTimeout? {deserialized is ServerTimeout}");
-            return;
             var server = new TcpServer(verbose: true);
-
-
+            
             server.StartListening();
             while (true) {
                 server.AcceptClients(); // accept new clients

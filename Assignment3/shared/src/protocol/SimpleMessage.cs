@@ -1,5 +1,5 @@
 ﻿namespace shared {
-    public class SimpleMessage : ISerializable {
+    public class SimpleMessage {
         private string text;
 
         public void Serialize(Packet pPacket) {

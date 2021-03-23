@@ -30,55 +30,67 @@ namespace shared {
         }
 
         /// WRITE METHODS
-        public void Write(int pInt) {
-            writer.Write(pInt);
-        }
-
-        public void Write(string pString) {
-            writer.Write(pString);
-        }
-
         public void Write(bool pBool) {
             writer.Write(pBool);
+        }
+
+        public void Write(int pInt) {
+            writer.Write(pInt);
         }
 
         public void Write(float @float) {
             writer.Write(@float);
         }
 
-        public void Write(ISerializable pSerializable) {
-            Write(pSerializable.GetType().FullName);
-            // TODO!
-            // pSerializable.Serialize(this);
+        public void Write(string pString) {
+            writer.Write(pString);
+        }
+
+        public void Write<T>(T obj) {
+
+            if (typeof(T) == typeof(bool)) {
+                Write((bool) (object) obj);
+                return;
+            }
+
+            if (typeof(T) == typeof(int)) {
+                Write((int)(object)obj);
+                return;
+            }
+            if (typeof(T) == typeof(float)) {
+                Write((float)(object)obj);
+                return;
+            }
+            if (typeof(T) == typeof(string)) {
+                Write((string)(object)obj);
+                return;
+            }
+            SerializationHelper.Serialize(obj, this);
         }
 
         /// READ METHODS
-        public int ReadInt() {
-            return reader.ReadInt32();
-        }
-
-        public string ReadString() {
-            return reader.ReadString();
-        }
-
         public bool ReadBool() {
             return reader.ReadBoolean();
+        }
+
+        public int ReadInt() {
+            return reader.ReadInt32();
         }
 
         public float ReadFloat() {
             return reader.ReadSingle();
         }
 
-        public ISerializable ReadObject() {
-            Type type = Type.GetType(ReadString());
-            ISerializable obj = (ISerializable) Activator.CreateInstance(type);
-            // obj.Deserialize(this);
-            // TODO!
-            return obj;
+        public string ReadString() {
+            return reader.ReadString();
         }
 
-        public T Read<T>() where T : ISerializable {
-            return (T) ReadObject();
+        public T Read<T>() {
+            if (typeof(T) == typeof(bool)) return (T) (object) ReadBool();
+            if (typeof(T) == typeof(int)) return (T) (object) ReadInt();
+            if (typeof(T) == typeof(float)) return (T) (object) ReadFloat();
+            if (typeof(T) == typeof(string)) return (T) (object) ReadString();
+            return (T) SerializationHelper.Deserialize(this);
         }
 
         /**
