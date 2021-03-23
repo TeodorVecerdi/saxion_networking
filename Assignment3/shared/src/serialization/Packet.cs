@@ -42,9 +42,14 @@ namespace shared {
             writer.Write(pBool);
         }
 
+        public void Write(float @float) {
+            writer.Write(@float);
+        }
+
         public void Write(ISerializable pSerializable) {
             Write(pSerializable.GetType().FullName);
-            pSerializable.Serialize(this);
+            // TODO!
+            // pSerializable.Serialize(this);
         }
 
         /// READ METHODS
@@ -60,10 +65,15 @@ namespace shared {
             return reader.ReadBoolean();
         }
 
+        public float ReadFloat() {
+            return reader.ReadSingle();
+        }
+
         public ISerializable ReadObject() {
             Type type = Type.GetType(ReadString());
             ISerializable obj = (ISerializable) Activator.CreateInstance(type);
-            obj.Deserialize(this);
+            // obj.Deserialize(this);
+            // TODO!
             return obj;
         }
 
