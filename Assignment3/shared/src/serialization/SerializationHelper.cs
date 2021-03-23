@@ -36,10 +36,6 @@ namespace shared.serialization {
                 var serializerInst = Activator.CreateInstance(serializer); 
                 methods.Add(TypeIDCache.GetID(serializerType), new SerializerFactory(serialize, deserialize, serializerInst));
             }
-
-            foreach (var keyValuePair in methods) {
-                Console.WriteLine($"{keyValuePair.Value.Serialize.DeclaringType.FullName}");
-            }
         }
 
         public static byte[] Serialize<T>(T obj) {

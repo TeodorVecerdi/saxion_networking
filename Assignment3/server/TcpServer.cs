@@ -4,7 +4,6 @@ using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.Serialization;
-using shared;
 using shared.protocol;
 using shared.serialization;
 
@@ -14,25 +13,31 @@ namespace Server {
         private const int defaultPort = 55555;
         internal static bool Verbose;
 
-        internal readonly Dictionary<TcpClient, User> Clients;
 
         private readonly float clientTimeout;
         private readonly int port;
         private readonly TcpListener listener;
+        private readonly Dictionary<TcpClient, User> clients;
         private readonly List<TcpClient> faultyClients;
         private readonly Queue<QueuedMessage> messageQueue;
         private readonly Queue<QueuedMessage> broadcastQueue;
+        private readonly List<ICommandHandler> commands;
 
         public TcpServer(float clientTimeout = defaultClientTimeout, int port = defaultPort, bool verbose = false) {
             this.clientTimeout = clientTimeout;
             this.port = port;
             Verbose = verbose;
 
+            clients = new Dictionary<TcpClient, User>();
             faultyClients = new List<TcpClient>();
-            Clients = new Dictionary<TcpClient, User>();
             listener = new TcpListener(IPAddress.Any, port);
             messageQueue = new Queue<QueuedMessage>();
             broadcastQueue = new Queue<QueuedMessage>();
+
+            commands = new List<ICommandHandler> {
+                new WhisperCommandHandler(),
+                new ReskinCommandHandler()
+            };
         }
 
         public void StartListening() {
@@ -49,15 +54,11 @@ namespace Server {
             while (listener.Pending()) {
                 var client = listener.AcceptTcpClient();
                 var user = new User();
-                Clients.Add(client, user);
+                clients.Add(client, user);
 
                 Logger.Info($"Accepted new client {user}");
-                // TODO: Send timeout
-                SendMessage(new ServerTimeout(clientTimeout), client);
-
-                // TODO: Send user joined
-                // QueueMessage($"<i>You joined the server as {user.Name}</i>", client);
-                // QueueBroadcast($"<i>Client {user.Name} joined the server.</i>", client);
+                SendMessage(new HelloWorld(clientTimeout, user.Id), client);
+                QueueBroadcast(new ClientJoined(user.Id, user.SkinId, user.PositionX, user.PositionZ), client);
             }
         }
 
@@ -74,13 +75,15 @@ namespace Server {
         }
 
         public void ProcessClients() {
-            foreach (var client in Clients) {
+            foreach (var client in clients) {
                 if (client.Key.Available <= 0) continue;
                 var stream = client.Key.GetStream();
                 byte[] inBytes = StreamUtil.Read(stream);
-                
                 client.Value.LastHeartbeat = DateTime.Now;
+                
                 var obj = SerializationHelper.Deserialize(inBytes);
+                if (Verbose)
+                    Logger.Info($"Received message [{obj.GetType().Name}] from client {client.Value.Id}", "INFO-VERBOSE");
                 ProcessObject(obj, client.Key);
             }
         }
@@ -89,7 +92,7 @@ namespace Server {
             // Remove in case we have any faulty clients
             RemoveFaultyClients();
 
-            foreach (var client in Clients) {
+            foreach (var client in clients) {
                 // Kill if not connected
                 if (!client.Key.Connected) {
                     faultyClients.Add(client.Key);
@@ -109,12 +112,42 @@ namespace Server {
 
         private void ProcessObject(object obj, TcpClient sender) {
             if (obj is Message message) {
+                QueueBroadcast(message);
                 return;
             }
 
             if (obj is Command command) {
-                HandleCommand(command);
+                HandleCommand(sender, command);
                 return;
+            }
+
+            if (obj is PositionChangeRequest positionChangeRequest) {
+                // check if position is valid
+                var deltaCenter = (positionChangeRequest.X * positionChangeRequest.X + positionChangeRequest.Z * positionChangeRequest.Z);
+                var valid = Constants.SpawnRange * Constants.SpawnRange - deltaCenter > 0;
+                if (!valid) return;
+                var positionChanged = new PositionChanged(positionChangeRequest.UserId, positionChangeRequest.X, positionChangeRequest.Z);
+                QueueBroadcast(positionChanged);
+                return;
+            }
+        }
+
+        internal void ReskinUser(TcpClient client) {
+            clients[client].Reskin();
+            var newSkin = clients[client].SkinId;
+            QueueBroadcast(new SkinChanged(clients[client].Id, newSkin));
+        }
+
+        internal void WhisperMessage(string message, TcpClient client) {
+            var sender = clients[client];
+            var messagePacket = new Message(clients[client].Id, message);
+            foreach (var clientPair in clients) {
+                var dx = clientPair.Value.PositionX - sender.PositionX;
+                var dz = clientPair.Value.PositionZ - sender.PositionZ;
+                // distance = 2 
+                if (dx * dx + dz * dz > 4.0f) continue;
+                
+                QueueMessage(messagePacket, clientPair.Key);
             }
         }
 
@@ -133,13 +166,13 @@ namespace Server {
             } catch (SerializationException e) {
                 Logger.Except(e);
             } catch (IOException e) {
-                Logger.Warn($"Client {Clients[client]} disconnected!");
+                Logger.Warn($"Client {clients[client]} disconnected!");
                 faultyClients.Add(client);
             }
         }
 
         internal void BroadcastMessage<T>(T message, TcpClient except = null, Func<TcpClient, bool> predicate = null) {
-            foreach (var client in Clients) {
+            foreach (var client in clients) {
                 if (predicate != null && !predicate(client.Key)) continue;
                 if (client.Key == except) continue;
                 SendMessage(message, client.Key);
@@ -148,9 +181,9 @@ namespace Server {
 
         private void RemoveFaultyClients() {
             foreach (var client in faultyClients) {
-                Logger.Warn($"Removing invalid client {Clients[client]} (could be a disconnected client)");
-                Clients.Remove(client);
-                
+                Logger.Warn($"Removing invalid client {clients[client].Id} (could be a disconnected client)");
+                clients.Remove(client);
+
                 try {
                     client.Close();
                 } catch {
@@ -159,6 +192,20 @@ namespace Server {
             }
 
             faultyClients.Clear();
+        }
+
+        private void HandleCommand(TcpClient client, Command command) {
+            var commandHandler = GetCommandHandler(command.CommandName);
+            if (commandHandler == null || !commandHandler.IsValidSyntax(command)) {
+                return;
+            }
+
+            commandHandler.HandleCommand(command, this, client);
+            if (Verbose) Logger.Info($"Command `/{command.CommandName}` was handled successfully by `{commandHandler.GetType().Name}`", "INFO-VERBOSE");
+        }
+
+        private ICommandHandler GetCommandHandler(string command) {
+            return commands.Find(handler => handler.Name == command);
         }
 
         private readonly struct QueuedMessage {
