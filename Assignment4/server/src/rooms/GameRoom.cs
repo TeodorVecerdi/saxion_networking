@@ -1,9 +1,10 @@
 ﻿using shared;
 using System;
+using shared.protocol;
+using shared.serialization;
 
-namespace server
-{
-	/**
+namespace server {
+    /**
 	 * This room runs a single Game (at a time). 
 	 * 
 	 * The 'Game' is very simple at the moment:
@@ -12,70 +13,60 @@ namespace server
 	 * The game has no end yet (that is up to you), in other words:
 	 * all players that are added to this room, stay in here indefinitely.
 	 */
-	class GameRoom : Room
-	{
-		public bool IsGameInPlay { get; private set; }
+    public class GameRoom : Room {
+        public bool IsGameInPlay { get; private set; }
 
-		//wraps the board to play on...
-		private TicTacToeBoard _board = new TicTacToeBoard();
+        //wraps the board to play on...
+        private readonly TicTacToeBoard board = new TicTacToeBoard();
 
-		public GameRoom(TCPGameServer pOwner) : base(pOwner)
-		{
-		}
+        public GameRoom(TCPGameServer owner) : base(owner) {
+        }
 
-		public void StartGame (TcpMessageChannel pPlayer1, TcpMessageChannel pPlayer2)
-		{
-			if (IsGameInPlay) throw new Exception("Programmer error duuuude.");
+        public void StartGame(TcpMessageChannel player1, TcpMessageChannel player2) {
+            if (IsGameInPlay) throw new Exception("Programmer error duuuude.");
 
-			IsGameInPlay = true;
-			addMember(pPlayer1);
-			addMember(pPlayer2);
-		}
+            IsGameInPlay = true;
+            AddMember(player1);
+            AddMember(player2);
+        }
 
-		protected override void addMember(TcpMessageChannel pMember)
-		{
-			base.addMember(pMember);
+        protected internal override void AddMember(TcpMessageChannel member) {
+            base.AddMember(member);
 
-			//notify client he has joined a game room 
-			RoomJoinedEvent roomJoinedEvent = new RoomJoinedEvent();
-			roomJoinedEvent.room = RoomJoinedEvent.Room.GAME_ROOM;
-			pMember.SendMessage(roomJoinedEvent);
-		}
+            //notify client he has joined a game room 
+            var roomJoinedEvent = new RoomJoinedEvent {Room = RoomJoinedEvent.RoomType.GAME_ROOM};
+            member.SendMessage(roomJoinedEvent);
+        }
 
-		public override void Update()
-		{
-			//demo of how we can tell people have left the game...
-			int oldMemberCount = memberCount;
-			base.Update();
-			int newMemberCount = memberCount;
+        public override void Update() {
+            //demo of how we can tell people have left the game...
+            var oldMemberCount = MemberCount;
+            base.Update();
+            var newMemberCount = MemberCount;
 
-			if (oldMemberCount != newMemberCount)
-			{
-				Log.LogInfo("People left the game...", this);
-			}
-		}
+            if (oldMemberCount != newMemberCount) {
+                Logger.Info("People left the game...", this, "ROOM-INFO");
+            }
+        }
 
-		protected override void handleNetworkMessage(ASerializable pMessage, TcpMessageChannel pSender)
-		{
-			if (pMessage is MakeMoveRequest)
-			{
-				handleMakeMoveRequest(pMessage as MakeMoveRequest, pSender);
-			}
-		}
+        protected override void HandleNetworkMessage(object message, TcpMessageChannel sender) {
+            if (message is MakeMoveRequest makeMoveRequest) {
+                HandleMakeMoveRequest(makeMoveRequest, sender);
+            }
+        }
 
-		private void handleMakeMoveRequest(MakeMoveRequest pMessage, TcpMessageChannel pSender)
-		{
-			//we have two players, so index of sender is 0 or 1, which means playerID becomes 1 or 2
-			int playerID = indexOfMember(pSender) + 1;
-			//make the requested move (0-8) on the board for the player
-			_board.MakeMove(pMessage.move, playerID);
+        private void HandleMakeMoveRequest(MakeMoveRequest message, TcpMessageChannel sender) {
+            //we have two players, so index of sender is 0 or 1, which means playerID becomes 1 or 2
+            var playerID = IndexOfMember(sender) + 1;
+            //make the requested move (0-8) on the board for the player
+            board.MakeMove(message.Move, playerID);
 
-			//and send the result of the boardstate back to all clients
-			MakeMoveResult makeMoveResult = new MakeMoveResult();
-			makeMoveResult.whoMadeTheMove = playerID;
-			makeMoveResult.boardData = _board.GetBoardData();
-			sendToAll(makeMoveResult);
-		}
-
-	}
+            //and send the result of the board state back to all clients
+            var makeMoveResult = new MakeMoveResult {
+                Player = playerID,
+                BoardData = board.GetBoardData()
+            };
+            SendToAll(makeMoveResult);
+        }
+    }
 }

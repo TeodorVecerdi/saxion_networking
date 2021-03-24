@@ -1,18 +1,15 @@
-﻿using shared;
+﻿using shared.serialization;
 
-namespace server
-{
+namespace server {
     /**
      * Subclasses Room to create an SimpleRoom which allows adding members without any special considerations.
      */
-    abstract class SimpleRoom : Room
-    {
-		protected SimpleRoom(TCPGameServer pServer) : base(pServer) { }
-
-        public void AddMember (TcpMessageChannel pChannel)
-        {
-            addMember(pChannel);
+    public abstract class SimpleRoom : Room {
+        protected SimpleRoom(TCPGameServer server) : base(server) {
         }
 
-	}
+        protected internal override void AddMember(TcpMessageChannel pChannel) {
+            base.AddMember(pChannel);
+        }
+    }
 }

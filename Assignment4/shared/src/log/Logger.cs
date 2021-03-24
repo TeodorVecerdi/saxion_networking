@@ -2,13 +2,13 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.Text;
+using shared.serialization;
 
-/// <summary>
-/// Debug class with utility methods: Log, LogWarning, LogError and Assert
-/// Inspired by the Unity implementation is the Debug class. Gets stripped from Release builds.
-/// </summary>
 public static class Logger {
     private const string logFormat = " [{0}.{1} (at {3}:{2})]";
+    private const bool kIncludeStackTrace = false;
+    private const bool kIncludeFileInfo = false;
+    private const bool kIncludeTimestamp = false;
 
     private static string GetString(object message) {
         if (message == null) return "Null";
@@ -16,60 +16,47 @@ public static class Logger {
         return message is IFormattable formattable ? formattable.ToString(null, CultureInfo.InvariantCulture) : message.ToString();
     }
 
-    public static void Except(Exception exception, bool includeStackTrace = false, bool includeFileInfo = false, bool includeTimestamp = false) {
+    [Conditional("DEBUG")]
+    public static void Except(Exception exception, object ctx, bool includeStackTrace = kIncludeStackTrace, bool includeFileInfo = kIncludeFileInfo, bool includeTimestamp = kIncludeTimestamp) {
         var message = exception.Message;
         if (includeStackTrace) message += $"\n{exception.StackTrace}";
-        Error(message, "EXCEPTION", includeFileInfo, includeTimestamp);
+        Error(message, ctx, "EXCEPTION", includeFileInfo, includeTimestamp);
+    }
+    
+    [Conditional("DEBUG")]
+    public static void Colored(object message, ConsoleColor color, object ctx = null, string messageTitle = "LOG", bool includeFileInfo = kIncludeFileInfo, bool includeTimestamp = kIncludeTimestamp) {
+        WriteMessage(message, ctx, messageTitle, color, includeFileInfo, includeTimestamp);
     }
 
-    public static void Info(object message, string messageTitle = "INFO", bool includeFileInfo = false, bool includeTimestamp = false) {
-#if DEBUG
+    [Conditional("DEBUG")]
+    public static void Info(object message, object ctx = null, string messageTitle = "INFO", bool includeFileInfo = kIncludeFileInfo, bool includeTimestamp = kIncludeTimestamp) {
+        WriteMessage(message, ctx, messageTitle, ConsoleColor.Blue, includeFileInfo, includeTimestamp);
+    }
+
+    [Conditional("DEBUG")]
+    public static void Warn(object message, object ctx = null, string messageTitle = "WARN", bool includeFileInfo = kIncludeFileInfo, bool includeTimestamp = kIncludeTimestamp) {
+        WriteMessage(message, ctx, messageTitle, ConsoleColor.DarkYellow, includeFileInfo, includeTimestamp);
+    }
+
+    [Conditional("DEBUG")]
+    public static void Error(object message, object ctx = null, string messageTitle = "ERROR", bool includeFileInfo = kIncludeFileInfo, bool includeTimestamp = kIncludeTimestamp) {
+        WriteMessage(message, ctx, messageTitle, ConsoleColor.DarkRed, includeFileInfo, includeTimestamp);
+    }
+    
+    [Conditional("DEBUG")]
+    private static void WriteMessage(object message, object ctx, string messageTitle, ConsoleColor color, bool includeFileInfo, bool includeTimestamp) {
         var fileInfo = includeFileInfo ? GetFileInfo() : "";
         messageTitle = includeTimestamp ? GetTitleWithDate(messageTitle) : messageTitle;
 
         Console.ForegroundColor = ConsoleColor.White;
-        Console.BackgroundColor = ConsoleColor.Blue;
-        Console.Write("[" + messageTitle + "]");
+        Console.BackgroundColor = color;
+        Console.Write("[" + messageTitle + $"]{(ctx != null ? $" @ {Utils.FriendlyName(ctx.GetType())}" : "")}");
         Console.ResetColor();
-        Console.Write(" " + GetString(message));
+        Console.ForegroundColor = color;
+        Console.Write($" {GetString(message)}");
         Console.ForegroundColor = ConsoleColor.DarkGray;
         Console.WriteLine(fileInfo);
         Console.ResetColor();
-#endif
-    }
-
-    public static void Warn(object message, string messageTitle = "WARN", bool includeFileInfo = false, bool includeTimestamp = false) {
-#if DEBUG
-        var fileInfo = includeFileInfo ? GetFileInfo() : "";
-        messageTitle = includeTimestamp ? GetTitleWithDate(messageTitle) : messageTitle;
-
-        Console.ForegroundColor = ConsoleColor.White;
-        Console.BackgroundColor = ConsoleColor.DarkYellow;
-        Console.Write("[" + messageTitle + "]");
-        Console.ResetColor();
-        Console.ForegroundColor = ConsoleColor.DarkYellow;
-        Console.Write(" " + GetString(message));
-        Console.ForegroundColor = ConsoleColor.DarkGray;
-        Console.WriteLine(fileInfo);
-        Console.ResetColor();
-#endif
-    }
-
-    public static void Error(object message, string messageTitle = "ERROR", bool includeFileInfo = false, bool includeTimestamp = false) {
-#if DEBUG
-        var fileInfo = includeFileInfo ? GetFileInfo() : "";
-        messageTitle = includeTimestamp ? GetTitleWithDate(messageTitle) : messageTitle;
-
-        Console.ForegroundColor = ConsoleColor.White;
-        Console.BackgroundColor = ConsoleColor.DarkRed;
-        Console.Write("[" + messageTitle + "]");
-        Console.ResetColor();
-        Console.ForegroundColor = ConsoleColor.DarkRed;
-        Console.Write(" " + GetString(message));
-        Console.ForegroundColor = ConsoleColor.DarkGray;
-        Console.WriteLine(fileInfo);
-        Console.ResetColor();
-#endif
     }
 
     private static string GetTitleWithDate(string messageTitle) {

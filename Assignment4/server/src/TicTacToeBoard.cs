@@ -1,7 +1,7 @@
 ﻿using shared;
+using shared.model;
 
-namespace server
-{
+namespace server {
     /**
      * This class wraps the actual board we are playing on.
      * 
@@ -14,32 +14,29 @@ namespace server
      * as simple as possible, so we can only make a move. In an actual game, this class would implement
      * methods such as GetValidMoves(), HasWon(), GetCurrentPlayer() etc.
      */
-    public class TicTacToeBoard
-    {
-        private TicTacToeBoardData _board = new TicTacToeBoardData();
+    public class TicTacToeBoard {
+        private readonly TicTacToeBoardData board = new TicTacToeBoardData();
 
         /**
          * @param pMove     a number from 0-8 that indicates the cell we want to change
          * @param pPlayer   1 or 2 to indicate which player made the move
          */
-        public void MakeMove (int pMove, int pPlayer)
-        {
-            _board.board[pMove] = pPlayer;
+        public void MakeMove(int move, int player) {
+            board.Board[move] = player;
 
             //we could also check which row and column if we wanted to:
-            int columns = 3;
-            int row = pMove / columns;
-            int column = pMove % columns;
-            Log.LogInfo($"Player {pPlayer} made a move in cell ({column},{row})", this);
+            var columns = 3;
+            var row = move / columns;
+            var column = move % columns;
+            Logger.Info($"Player {player} made a move in cell ({column},{row})", this, "BOARD");
         }
 
         /**
          * Return the inner board data state so we can send it to a client.
          */
-        public TicTacToeBoardData GetBoardData()
-        {
+        public TicTacToeBoardData GetBoardData() {
             //it would be more academically correct if we would clone this object before returning it, but anyway.
-            return _board;
+            return board;
         }
     }
 }
