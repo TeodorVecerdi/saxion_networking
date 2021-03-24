@@ -31,7 +31,7 @@ namespace shared.serialization {
         }
 
         public void Write(Type type, object obj) {
-            if (Serializer.LOG_SERIALIZATION) Logger.Info($"Writing type {Utils.FriendlyName(type)} [{obj}]", "SERIALIZE");
+            if (Serializer.LOG_SERIALIZATION) Logger.Info($"Writing type {Utils.FriendlyName(type)} [{obj}]", null, "SERIALIZE");
             if (type == typeof(bool)) writer.Write((bool) obj);
             else if (type == typeof(byte)) writer.Write((byte) obj);
             else if (type == typeof(string)) writer.Write((string) obj);
@@ -50,7 +50,7 @@ namespace shared.serialization {
         }
 
         public object Read(Type type) {
-            if (Serializer.LOG_SERIALIZATION) Logger.Info($"Reading type {Utils.FriendlyName(type)}", "SERIALIZE");
+            if (Serializer.LOG_SERIALIZATION) Logger.Info($"Reading type {Utils.FriendlyName(type)}", null, "SERIALIZE");
             if (type == typeof(bool)) return reader.ReadBoolean();
             if (type == typeof(byte)) return reader.ReadByte();
             if (type == typeof(string)) return reader.ReadString();
