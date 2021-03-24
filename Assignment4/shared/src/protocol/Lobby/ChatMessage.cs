@@ -1,20 +1,11 @@
-﻿namespace shared
-{
-	/**
+﻿using shared.serialization;
+using shared.serialization.attr;
+
+namespace shared.protocol {
+    /**
 	 * BIDIRECTIONAL Chat message for the lobby
 	 */
-	public class ChatMessage : ASerializable
-	{
-		public string message;
-
-		public override void Serialize(Packet pPacket)
-		{
-			pPacket.Write(message);
-		}
-
-		public override void Deserialize(Packet pPacket)
-		{
-			message = pPacket.ReadString();
-		}
-	}
+    public class ChatMessage : ASerializable {
+        [Serialize] public string Message;
+    }
 }

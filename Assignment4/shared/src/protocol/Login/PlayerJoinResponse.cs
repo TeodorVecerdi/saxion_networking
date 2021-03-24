@@ -1,22 +1,14 @@
-﻿namespace shared
+﻿using shared.serialization.attr;
+
+namespace shared.protocol
 {
     /**
      * Send from SERVER to CLIENT to let the client know whether it was allowed to join or not.
      * Currently the only possible result is accepted.
      */
-    public class PlayerJoinResponse : ASerializable
+    public class PlayerJoinResponse
     {
-        public enum RequestResult { ACCEPTED }; //can add different result states if you want
-        public RequestResult result;
-
-        public override void Serialize(Packet pPacket)
-        {
-            pPacket.Write((int)result);
-        }
-
-        public override void Deserialize(Packet pPacket)
-        {
-            result = (RequestResult)pPacket.ReadInt();
-        }
+        public enum RequestResult { ACCEPTED, CONFLICT } //can add different result states if you want
+        [Serialize] public RequestResult Result;
     }
 }

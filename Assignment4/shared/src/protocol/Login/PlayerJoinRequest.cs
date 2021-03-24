@@ -1,20 +1,11 @@
-﻿namespace shared
-{
+﻿using shared.serialization;
+using shared.serialization.attr;
+
+namespace shared.protocol {
     /**
      * Send from CLIENT to SERVER to request joining the server.
      */
-    public class PlayerJoinRequest : ASerializable
-    {
-        public string name;
-
-        public override void Serialize(Packet pPacket)
-        {
-            pPacket.Write(name);
-        }
-
-        public override void Deserialize(Packet pPacket)
-        {
-            name = pPacket.ReadString();
-        }
+    public class PlayerJoinRequest : ASerializable {
+        [Serialize] public string Name;
     }
 }
