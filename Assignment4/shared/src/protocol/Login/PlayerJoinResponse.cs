@@ -1,4 +1,4 @@
-﻿using shared.serialization.attr;
+﻿using shared.serialization;
 
 namespace shared.protocol
 {

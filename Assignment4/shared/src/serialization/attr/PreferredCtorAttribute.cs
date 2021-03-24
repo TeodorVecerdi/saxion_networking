@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace shared.serialization.attr {
+namespace shared.serialization {
     [AttributeUsage(AttributeTargets.Constructor)]
     public class PreferredCtorAttribute : Attribute {
         public object[] Arguments { get; }

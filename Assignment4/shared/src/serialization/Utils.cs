@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using shared.serialization.attr;
 using shared.serialization.model;
 
 namespace shared.serialization {

@@ -1,6 +1,5 @@
 ﻿using shared.model;
 using shared.serialization;
-using shared.serialization.attr;
 
 namespace shared {
     /**

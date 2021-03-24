@@ -46,7 +46,7 @@ namespace shared.serialization {
         public static T Deserialize<T>(this Packet packet) => (T) Deserialize(packet);
 
         public static object Deserialize(this Packet packet) {
-            var type = TypeId.Get(packet.Read<string>());
+            var type = packet.Read<string>().AsType();
             if (LOG_SERIALIZATION) Logger.Info($"Deserializing type {Utils.FriendlyName(type)}", "SERIALIZE");
             if (Utils.IsTriviallySerializable(type)) return DeserializeTrivialImpl(packet, type);
 
