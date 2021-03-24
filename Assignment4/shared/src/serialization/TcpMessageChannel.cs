@@ -32,7 +32,7 @@ namespace shared.serialization {
          * This is usually used on the server side after accepting a TcpClient from a TcpListener.
          */
         public TcpMessageChannel(TcpClient tcpClient) {
-            Log.LogInfo("TCPMessageChannel created around " + tcpClient, this, ConsoleColor.Blue);
+            Logger.Info($"TCPMessageChannel created around {tcpClient}", this);
 
             client = tcpClient;
             stream = client.GetStream();
@@ -45,7 +45,7 @@ namespace shared.serialization {
          * after creating it. 
          */
         public TcpMessageChannel() {
-            Log.LogInfo("TCPMessageChannel created (not connected).", this, ConsoleColor.Blue);
+            Logger.Info("TCPMessageChannel created (not connected).", this);
         }
 
         /**
@@ -54,7 +54,7 @@ namespace shared.serialization {
          * @return bool indicating connection status
          */
         public bool Connect(string serverIP, int serverPort) {
-            Log.LogInfo("Connecting...", this, ConsoleColor.Blue);
+            Logger.Info("Connecting...", this);
 
             try {
                 client = new TcpClient();
@@ -62,7 +62,7 @@ namespace shared.serialization {
                 stream = client.GetStream();
                 remoteEndPoint = client.Client.RemoteEndPoint as IPEndPoint;
                 errors.Clear();
-                Log.LogInfo("Connected.", this, ConsoleColor.Blue);
+                Logger.Info("Connected.", this);
                 return true;
             } catch (Exception e) {
                 AddError(e);
@@ -75,14 +75,11 @@ namespace shared.serialization {
          */
         public void SendMessage(object message) {
             if (HasErrors()) {
-                Log.LogInfo("This channel has errors, cannot send.", this, ConsoleColor.Red);
+                Logger.Error("This channel has errors, cannot send.", this);
                 return;
             }
 
-            //everything we log from now to the end of this method should be cyan
-            Log.PushForegroundColor(ConsoleColor.Cyan);
-            Log.LogInfo(message, this);
-
+            Logger.Colored(message, ConsoleColor.Cyan, this);
             try {
                 //grab the required bytes from either the packet or the cache
                 if (lastSerializedMessage != message) {
@@ -94,8 +91,6 @@ namespace shared.serialization {
             } catch (Exception e) {
                 AddError(e);
             }
-
-            Log.PopForegroundColor();
         }
 
         /**
@@ -107,23 +102,21 @@ namespace shared.serialization {
         }
 
         /**
-         * Block until a complete message is read over the underlying's TcpClient's NetStream.
+         * Block until a complete message is read over the underlying TcpClient's NetStream.
          * If you don't want to block, check HasMessage first().
          */
         public object ReceiveMessage() {
             if (HasErrors()) {
-                Log.LogInfo("This channel has errors, cannot receive.", this, ConsoleColor.Red);
+                Logger.Error("This channel has errors, cannot receive.", this);
                 return null;
             }
 
             try {
-                Log.PushForegroundColor(ConsoleColor.Yellow);
-                Log.LogInfo("Receiving message...", this);
+                Logger.Warn("Receiving message...", this, "RECV");
 
                 byte[] inBytes = StreamUtil.Read(stream);
                 var message = inBytes.Deserialize();
-                Log.LogInfo("Received " + message, this);
-                Log.PopForegroundColor();
+                Logger.Warn($"Received {message}", this, "RECV");
 
                 return message;
             } catch (Exception e) {
@@ -146,7 +139,7 @@ namespace shared.serialization {
         }
 
         private void AddError(Exception error) {
-            Log.LogInfo("Error added:" + error, this, ConsoleColor.Red);
+            Logger.Error($"Error added:{error}", this);
             errors.Add(error);
             Close();
         }

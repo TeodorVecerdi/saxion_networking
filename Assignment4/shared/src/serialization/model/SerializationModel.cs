@@ -14,7 +14,7 @@ namespace shared.serialization.model {
 
             Fields = type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).Where(Utils.CanSerializeField).ToArray();
             foreach (var field in Fields) {
-                if(!Utils.BuiltinTypes.Contains(field.FieldType) && !Serializer.HasSerializationModel(field.FieldType))
+                if(!Utils.IsTriviallySerializable(field.FieldType) && !Serializer.HasSerializationModel(field.FieldType))
                     Serializer.BuildSerializationModel(field.FieldType);
             }
         }

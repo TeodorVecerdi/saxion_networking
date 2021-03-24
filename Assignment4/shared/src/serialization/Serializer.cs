@@ -4,7 +4,7 @@ using shared.serialization.model;
 
 namespace shared.serialization {
     public static class Serializer {
-        public const bool LOG_SERIALIZATION = false;
+        public const bool LOG_SERIALIZATION = true;
         private static readonly Dictionary<string, SerializationModel> serializationModel = new Dictionary<string, SerializationModel>();
 
         public static byte[] Serialize(object obj, Type type) => Serialize(obj, type, new Packet());

@@ -61,7 +61,7 @@ namespace shared.serialization {
             if (type == typeof(long)) return reader.ReadInt64();
             if (Utils.CanSerializeList(type)) return ReadList(type);
             if (type.IsEnum) return ReadEnum(type);
-            return Serializer.Deserialize(this);
+            return this.Deserialize();
         }
 
         public T Read<T>() {

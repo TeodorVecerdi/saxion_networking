@@ -9,12 +9,12 @@ namespace shared.serialization {
     public static class Utils {
         public static bool CanSerializeField(FieldInfo field) {
             if (field.GetCustomAttribute<SerializeAttribute>() == null) return false;
-            if (BuiltinTypes.Contains(field.FieldType) || field.FieldType.GetCustomAttribute<SerializeAttribute>() != null || CanSerializeList(field.FieldType)) return true;
+            if (BuiltinTypes.Contains(field.FieldType) || field.FieldType.IsEnum || field.FieldType.GetCustomAttribute<SerializeAttribute>() != null || CanSerializeList(field.FieldType)) return true;
             return false;
         }
 
         public static bool IsTriviallySerializable(Type type) {
-            return BuiltinTypes.Contains(type) || CanSerializeList(type);
+            return BuiltinTypes.Contains(type) || type.IsEnum || CanSerializeList(type);
         }
 
         public static InstantiateCtor Ctor(this Type type) {
