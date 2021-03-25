@@ -8,6 +8,7 @@ namespace shared.serialization {
         private static readonly Dictionary<TypeId, SerializationModel> serializationModel = new Dictionary<TypeId, SerializationModel>();
 
         public static byte[] Serialize(this object obj, Type type) => Serialize(obj, type, new Packet());
+        public static byte[] Serialize(this object obj) => Serialize(obj, obj.GetType(), new Packet());
         public static byte[] Serialize<T>(this T obj, Packet packet) => Serialize(obj, typeof(T), new Packet());
         public static byte[] Serialize<T>(this T obj) => Serialize(obj, typeof(T), new Packet());
 

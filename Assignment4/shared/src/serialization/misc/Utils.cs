@@ -6,19 +6,9 @@ using shared.serialization.model;
 
 namespace shared.serialization {
     public static class Utils {
-        public static bool CanSerializeField(FieldInfo field) {
-            if (field.GetCustomAttribute<SerializeAttribute>() == null) return false;
-            if (IsTriviallySerializable(field.FieldType) || field.FieldType.GetCustomAttribute<SerializeAttribute>() != null) return true;
-            return false;
-        }
-        
-        public static bool CanSerializeType(Type type) {
-            return IsTriviallySerializable(type) || type.GetCustomAttribute<SerializeAttribute>() != null;
-        }
+        public static bool CanSerializeField(FieldInfo field) => field.GetCustomAttribute<SerializeAttribute>() != null;
 
-        public static bool IsTriviallySerializable(Type type) {
-            return BuiltinTypes.Contains(type) || type.IsEnum || CanSerializeList(type) || CanSerializeDictionary(type);
-        }
+        public static bool IsTriviallySerializable(Type type) => BuiltinTypes.Contains(type) || type.IsEnum || CanSerializeList(type) || CanSerializeDictionary(type);
 
         public static InstantiateCtor Ctor(this Type type) {
             var constructors = type.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
