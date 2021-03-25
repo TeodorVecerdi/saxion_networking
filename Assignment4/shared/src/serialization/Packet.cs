@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using shared.log;
 
@@ -36,7 +37,8 @@ namespace shared.serialization {
 
         public void Write(Type type, object obj) {
             var size = GetSize(type, obj);
-            if (Options.LOG_SERIALIZATION_WRITE) Logger.Info($"Writing type {Utils.FriendlyName(type)} [{(size == -1?"Unknown":size.ToString())} bytes]", null, "SERIALIZE-WRITE");
+            if (Options.LOG_SERIALIZATION_WRITE)
+                Logger.Info($"Writing type {Utils.FriendlyName(type)} [{(size == -1 ? "Unknown" : size.ToString())} bytes]", null, "SERIALIZE-WRITE");
             if (type == typeof(bool)) writer.Write((bool) obj);
             else if (type == typeof(byte)) writer.Write((byte) obj);
             else if (type == typeof(string)) writer.Write((string) obj);
@@ -101,7 +103,7 @@ namespace shared.serialization {
 
             return list;
         }
-        
+
         private void WriteDictionary(Type type, object obj) {
             var keyType = type.GetGenericArguments()[0];
             var valueType = type.GetGenericArguments()[1];
@@ -112,13 +114,14 @@ namespace shared.serialization {
             foreach (var key in keyCollection) {
                 keyList.Add(key);
             }
-            
+
             var valueCollection = dict.Values;
             var valueList = (IList) Activator.CreateInstance(typeof(List<>).MakeGenericType(valueType));
             Debug.Assert(valueList != null, nameof(valueList) + " != null");
             foreach (var value in valueCollection) {
                 valueList.Add(value);
             }
+
             WriteList(typeof(List<>).MakeGenericType(keyType), keyList);
             WriteList(typeof(List<>).MakeGenericType(valueType), valueList);
         }
@@ -131,7 +134,7 @@ namespace shared.serialization {
             Debug.Assert(keyList != null, nameof(keyList) + " != null");
             Debug.Assert(valueList != null, nameof(valueList) + " != null");
             Debug.Assert(keyList.Count == valueList.Count, $"{nameof(keyList)}.Count == {nameof(valueList)}.Count");
-            
+
             var dict = (IDictionary) Activator.CreateInstance(type);
             Debug.Assert(dict != null, nameof(dict) + " != null");
             for (var i = 0; i < keyList.Count; i++) {
@@ -155,15 +158,33 @@ namespace shared.serialization {
         }
 
         public void WriteTypeId(TypeId typeId) {
-            var id = typeId.ID;
-            if (Options.LOG_SERIALIZATION_WRITE) Logger.Info($"Writing TypeId of {Utils.FriendlyName(typeId.Type)} [{sizeof(char) * id.Length} bytes]", null, "SERIALIZE-WRITE");
-            writer.Write(id);
+            var type = typeId.Type;
+            if (!type.IsGenericType) {
+                if (Options.LOG_SERIALIZATION_WRITE) Logger.Info($"Writing TypeId of {Utils.FriendlyName(typeId.Type)} [{sizeof(char) * typeId.ID.Length} bytes]", null, "SERIALIZE-WRITE");
+                writer.Write(typeId.ID);
+                return;
+            }
+
+            var typeDef = TypeIdUtils.Get(type.GetGenericTypeDefinition());
+            if (Options.LOG_SERIALIZATION_WRITE) Logger.Info($"Writing TypeId of {Utils.FriendlyName(typeDef.Type)} [{sizeof(char) * typeDef.ID.Length} bytes]", null, "SERIALIZE-WRITE");
+            writer.Write(typeDef.ID);
+            var genericArguments = type.GetGenericArguments();
+            foreach (var arg in genericArguments) {
+                WriteTypeId(TypeIdUtils.Get(arg));
+            }
         }
 
         public TypeId ReadTypeId() {
-            var id = Read<string>();
-            if (Options.LOG_SERIALIZATION_READ) Logger.Info($"Reading TypeId [{sizeof(char) * id.Length} bytes]", null, "SERIALIZE-READ");
-            return TypeIdUtil.Get(id);
+            var type = TypeIdUtils.FindTypeByName(Read<string>());
+            if (Options.LOG_SERIALIZATION_READ) Logger.Info($"Reading TypeId of {Utils.FriendlyName(type)}", null, "SERIALIZE-READ");
+            if (!type.IsGenericTypeDefinition) return TypeIdUtils.Get(type);
+
+            var genericArguments = new List<TypeId>();
+            for (var i = 0; i < type.GetGenericArguments().Length; i++) {
+                genericArguments.Add(ReadTypeId());
+            }
+
+            return TypeIdUtils.Get(type.MakeGenericType(genericArguments.Select(id => id.Type).ToArray()));
         }
 
         private int GetSize(Type type, object obj) {
@@ -173,11 +194,13 @@ namespace shared.serialization {
                 if (elemSize == -1) return -1;
                 return elemSize * ((Array) obj).GetLength(0);
             }
+
             if (Utils.IsList(type)) {
                 var elemSize = GetSize(type.GetElementType(), type.GetElementType().Instance());
                 if (elemSize == -1) return -1;
                 return elemSize * ((IList) obj).Count;
             }
+
             if (Utils.IsDictionary(type)) {
                 var keyType = type.GetGenericArguments()[0];
                 var valueType = type.GetGenericArguments()[1];
@@ -186,7 +209,8 @@ namespace shared.serialization {
                 if (keySize == -1 || valueSize == -1) return -1;
                 return (keySize + valueSize) * ((ICollection) obj).Count;
             }
-            if (type.IsEnum)return type.GetEnumUnderlyingType().SizeOf();
+
+            if (type.IsEnum) return type.GetEnumUnderlyingType().SizeOf();
 
             return -1;
         }
