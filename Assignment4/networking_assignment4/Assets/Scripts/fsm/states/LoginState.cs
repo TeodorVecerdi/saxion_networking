@@ -1,35 +1,32 @@
-﻿using shared;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using shared.protocol;
+using shared.serialization;
 using UnityEngine;
 
 /**
  * Starting state where you can connect to the server.
  */
-public class LoginState : ApplicationStateWithView<LoginView>
-{
-    [SerializeField]    private string _serverIP = null;
-    [SerializeField]    private int _serverPort = 0;
+public class LoginState : ApplicationStateWithView<LoginView> {
+    [SerializeField] private string ServerIP;
+    [SerializeField] private int ServerPort;
     [Tooltip("To avoid long iteration times, set this to true while testing.")]
-    [SerializeField]    private bool autoConnectWithRandomName = false;
+    [SerializeField] private bool AutoConnectWithRandomName;
 
-    public override void EnterState()
-    {
+    public override void EnterState() {
         base.EnterState();
 
         //listen to a connect click from our view
         view.ButtonConnect.onClick.AddListener(Connect);
 
         //If flagged, generate a random name and connect automatically
-        if (autoConnectWithRandomName)
-        {
-            List<string> names = new List<string> { "Pergu", "Korgulg", "Xaguk", "Rodagog", "Kodagog", "Dular", "Buggug", "Gruumsh" };
-            view.userName = names[Random.Range(0, names.Count)];
-            Connect();
-        }
+        if (!AutoConnectWithRandomName) return;
+
+        var names = new List<string> {"Pergu", "Korgulg", "Xaguk", "Rodagog", "Kodagog", "Dular", "Buggug", "Gruumsh"};
+        view.userName = names[Random.Range(0, names.Count)];
+        Connect();
     }
 
-    public override void ExitState ()
-    {
+    public override void ExitState() {
         base.ExitState();
 
         //stop listening to button clicks
@@ -39,52 +36,40 @@ public class LoginState : ApplicationStateWithView<LoginView>
     /**
      * Connect to the server (with some client side validation)
      */
-    private void Connect()
-    {
-        if (view.userName == "")
-        {
+    private void Connect() {
+        if (view.userName == "") {
             view.TextConnectResults = "Please enter a name first";
             return;
         }
 
         //connect to the server and on success try to join the lobby
-        if (fsm.channel.Connect(_serverIP, _serverPort))
-        {
-            tryToJoinLobby();
-        } else
-        {
-            view.TextConnectResults = "Oops, couldn't connect:"+string.Join("\n", fsm.channel.GetErrors());
+        if (fsm.channel.Connect(ServerIP, ServerPort)) {
+            TryToJoinLobby();
+        } else {
+            view.TextConnectResults = "Oops, couldn't connect:" + string.Join("\n", fsm.channel.GetErrors());
         }
     }
 
-    private void tryToJoinLobby()
-    {
+    private void TryToJoinLobby() {
         //Construct a player join request based on the user name 
-        PlayerJoinRequest playerJoinRequest = new PlayerJoinRequest();
-        playerJoinRequest.name = view.userName;
+        var playerJoinRequest = new PlayerJoinRequest {Name = view.userName};
         fsm.channel.SendMessage(playerJoinRequest);
     }
 
     /// //////////////////////////////////////////////////////////////////
     ///                     NETWORK MESSAGE PROCESSING
     /// //////////////////////////////////////////////////////////////////
-
-    private void Update()
-    {
+    private void Update() {
         //if we are connected, start processing messages
-        if (fsm.channel.Connected) receiveAndProcessNetworkMessages();
+        if (fsm.channel.Connected) ReceiveAndProcessNetworkMessages();
     }
 
-    
-    protected override void handleNetworkMessage(ASerializable pMessage)
-    {
-        if (pMessage is PlayerJoinResponse) handlePlayerJoinResponse (pMessage as PlayerJoinResponse);
-        else if (pMessage is RoomJoinedEvent) handleRoomJoinedEvent (pMessage as RoomJoinedEvent);
+    protected override void HandleNetworkMessage(object message) {
+        if (message is PlayerJoinResponse playerJoinResponse) HandlePlayerJoinResponse(playerJoinResponse);
+        else if (message is RoomJoinedEvent roomJoinedEvent) HandleRoomJoinedEvent(roomJoinedEvent);
     }
-    
 
-    private void handlePlayerJoinResponse(PlayerJoinResponse pMessage)
-    {
+    private void HandlePlayerJoinResponse(PlayerJoinResponse message) {
         //Dont do anything with this info at the moment, just leave it to the RoomJoinedEvent
         //We could handle duplicate name messages, get player info etc here
         /*
@@ -94,13 +79,9 @@ public class LoginState : ApplicationStateWithView<LoginView>
         */
     }
 
-    private void handleRoomJoinedEvent (RoomJoinedEvent pMessage)
-    {
-        if (pMessage.room == RoomJoinedEvent.Room.LOBBY_ROOM)
-        {
+    private void HandleRoomJoinedEvent(RoomJoinedEvent message) {
+        if (message.Room == RoomJoinedEvent.RoomType.LOBBY_ROOM) {
             fsm.ChangeState<LobbyState>();
-        } 
+        }
     }
-
 }
-

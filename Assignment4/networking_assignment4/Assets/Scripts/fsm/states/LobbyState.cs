@@ -1,100 +1,86 @@
 ﻿using shared;
+using shared.protocol;
+using shared.serialization;
 using UnityEngine;
 
 /**
  * 'Chat' state while you are waiting to start a game where you can signal that you are ready or not.
  */
-public class LobbyState : ApplicationStateWithView<LobbyView>
-{
+public class LobbyState : ApplicationStateWithView<LobbyView> {
     [Tooltip("Should we enter the lobby in a ready state or not?")]
-    [SerializeField] private bool autoQueueForGame = false;
+    [SerializeField] private bool AutoQueueForGame;
 
-    public override void EnterState()
-    {
+    public override void EnterState() {
         base.EnterState();
 
         view.SetLobbyHeading("Welcome to the Lobby...");
         view.ClearOutput();
-        view.AddOutput($"Server settings:"+fsm.channel.GetRemoteEndPoint());
-        view.SetReadyToggle(autoQueueForGame);
+        view.AddOutput($"Server settings: {fsm.channel.GetRemoteEndPoint()}");
+        view.SetReadyToggle(AutoQueueForGame);
 
-        view.OnChatTextEntered += onTextEntered;
-        view.OnReadyToggleClicked += onReadyToggleClicked;
+        view.OnChatTextEntered += OnTextEntered;
+        view.OnReadyToggleClicked += OnReadyToggleClicked;
 
-        if (autoQueueForGame)
-        {
-            onReadyToggleClicked(true);
+        if (AutoQueueForGame) {
+            OnReadyToggleClicked(true);
         }
     }
 
-    public override void ExitState()
-    {
+    public override void ExitState() {
         base.ExitState();
-        
-        view.OnChatTextEntered -= onTextEntered;
-        view.OnReadyToggleClicked -= onReadyToggleClicked;
+
+        view.OnChatTextEntered -= OnTextEntered;
+        view.OnReadyToggleClicked -= OnReadyToggleClicked;
     }
 
     /**
      * Called when you enter text and press enter.
      */
-    private void onTextEntered(string pText)
-    {
+    private void OnTextEntered(string text) {
         view.ClearInput();
 
-        addOutput("(noone else will see this because I broke the chat on purpose):"+pText);        
+        AddOutput("(no-one else will see this because I broke the chat on purpose):" + text);
     }
 
     /**
      * Called when you click on the ready checkbox
      */
-    private void onReadyToggleClicked(bool pNewValue)
-    {
-        ChangeReadyStatusRequest msg = new ChangeReadyStatusRequest();
-        msg.ready = pNewValue;
+    private void OnReadyToggleClicked(bool newValue) {
+        var msg = new ChangeReadyStatusRequest {Ready = newValue};
         fsm.channel.SendMessage(msg);
     }
 
-    private void addOutput(string pInfo)
-    {
+    private void AddOutput(string pInfo) {
         view.AddOutput(pInfo);
     }
 
     /// //////////////////////////////////////////////////////////////////
     ///                     NETWORK MESSAGE PROCESSING
     /// //////////////////////////////////////////////////////////////////
-
-    private void Update()
-    {
-        receiveAndProcessNetworkMessages();
-    }
-    
-    protected override void handleNetworkMessage(ASerializable pMessage)
-    {
-        if (pMessage is ChatMessage) handleChatMessage(pMessage as ChatMessage);
-        else if (pMessage is RoomJoinedEvent) handleRoomJoinedEvent(pMessage as RoomJoinedEvent);
-        else if (pMessage is LobbyInfoUpdate) handleLobbyInfoUpdate(pMessage as LobbyInfoUpdate);
+    private void Update() {
+        ReceiveAndProcessNetworkMessages();
     }
 
-    private void handleChatMessage(ChatMessage pMessage)
-    {
+    protected override void HandleNetworkMessage(object message) {
+        if (message is ChatMessage chatMessage) HandleChatMessage(chatMessage);
+        else if (message is RoomJoinedEvent roomJoinedEvent) HandleRoomJoinedEvent(roomJoinedEvent);
+        else if (message is LobbyInfoUpdate lobbyInfoUpdate) HandleLobbyInfoUpdate(lobbyInfoUpdate);
+    }
+
+    private void HandleChatMessage(ChatMessage message) {
         //just show the message
-        addOutput(pMessage.message);
+        AddOutput(message.Message);
     }
 
-    private void handleRoomJoinedEvent(RoomJoinedEvent pMessage)
-    {
+    private void HandleRoomJoinedEvent(RoomJoinedEvent message) {
         //did we move to the game room?
-        if (pMessage.room == RoomJoinedEvent.Room.GAME_ROOM)
-        {
+        if (message.Room == RoomJoinedEvent.RoomType.GAME_ROOM) {
             fsm.ChangeState<GameState>();
         }
     }
 
-    private void handleLobbyInfoUpdate(LobbyInfoUpdate pMessage)
-    {
+    private void HandleLobbyInfoUpdate(LobbyInfoUpdate message) {
         //update the lobby heading
-        view.SetLobbyHeading($"Welcome to the Lobby ({pMessage.memberCount} people, {pMessage.readyCount} ready)");
+        view.SetLobbyHeading($"Welcome to the Lobby ({message.MemberCount} people, {message.ReadyCount} ready)");
     }
-
 }

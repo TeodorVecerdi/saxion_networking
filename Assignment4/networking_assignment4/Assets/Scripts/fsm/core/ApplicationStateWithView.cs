@@ -23,9 +23,9 @@ public abstract class ApplicationStateWithView<T> : ApplicationState where T : V
     [SerializeField] private T _view = null;
     protected T view { get { return _view; } }
 
-	public override void Initialize(ApplicationFSM pApplicationFSM)
+	public override void Initialize(ApplicationFSM applicationFsm)
 	{
-		base.Initialize(pApplicationFSM);
+		base.Initialize(applicationFsm);
 		view?.Hide();
 
 		Debug.Log("Initialized state " + this.name + " (linked to view:"+view?.name+")");
