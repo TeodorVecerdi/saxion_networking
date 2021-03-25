@@ -41,35 +41,61 @@ namespace shared.serialization {
                 Logger.Info($"Writing type {Utils.FriendlyName(type)} [{(size == -1 ? "Unknown" : size.ToString())} bytes]", null, "SERIALIZE-WRITE");
             if (type == typeof(bool)) writer.Write((bool) obj);
             else if (type == typeof(byte)) writer.Write((byte) obj);
-            else if (type == typeof(string)) writer.Write((string) obj);
             else if (type == typeof(float)) writer.Write((float) obj);
             else if (type == typeof(double)) writer.Write((double) obj);
             else if (type == typeof(int)) writer.Write((int) obj);
             else if (type == typeof(uint)) writer.Write((uint) obj);
             else if (type == typeof(long)) writer.Write((long) obj);
+            else if (type.IsEnum) WriteEnum(type, obj);
+            else WriteNullable(type, obj);
+        }
+
+        private void WriteNullable(Type type, object obj) {
+            var canBeNull = !type.IsValueType || Nullable.GetUnderlyingType(type) != null;
+            var isNull = canBeNull && obj == null;
+
+            if (isNull) {
+                writer.Write(false);
+                return;
+            }
+
+            if (canBeNull) writer.Write(true);
+            if (type == typeof(string)) writer.Write((string) obj);
             else if (Utils.CanSerializeList(type)) WriteList(type, obj);
             else if (Utils.CanSerializeDictionary(type)) WriteDictionary(type, obj);
-            else if (type.IsEnum) WriteEnum(type, obj);
             else obj.Serialize(type, this);
         }
 
         public void Write<T>(T obj) {
-            Write(obj.GetType(), obj);
+            var type = typeof(object);
+            if (obj != null) type = obj.GetType();
+            Write(type, obj);
         }
 
         public object Read(Type type) {
             if (Options.LOG_SERIALIZATION_READ) Logger.Info($"Reading type {Utils.FriendlyName(type)}", null, "SERIALIZE-READ");
             if (type == typeof(bool)) return reader.ReadBoolean();
             if (type == typeof(byte)) return reader.ReadByte();
-            if (type == typeof(string)) return reader.ReadString();
             if (type == typeof(float)) return reader.ReadSingle();
             if (type == typeof(double)) return reader.ReadDouble();
             if (type == typeof(int)) return reader.ReadInt32();
             if (type == typeof(uint)) return reader.ReadUInt32();
             if (type == typeof(long)) return reader.ReadInt64();
+            if (type.IsEnum) return ReadEnum(type);
+            return ReadNullable(type);
+        }
+
+        private object ReadNullable(Type type) {
+            var canBeNull = !type.IsValueType || Nullable.GetUnderlyingType(type) != null;
+
+            if (canBeNull) {
+                var hasValue = Read<bool>();
+                if (!hasValue) return null;
+            }
+
+            if (type == typeof(string)) return reader.ReadString();
             if (Utils.CanSerializeList(type)) return ReadList(type);
             if (Utils.CanSerializeDictionary(type)) return ReadDictionary(type);
-            if (type.IsEnum) return ReadEnum(type);
             return this.Deserialize();
         }
 
@@ -160,14 +186,16 @@ namespace shared.serialization {
         public void WriteTypeId(TypeId typeId) {
             var type = typeId.Type;
             if (!type.IsGenericType) {
-                if (Options.LOG_SERIALIZATION_WRITE) Logger.Info($"Writing TypeId of {Utils.FriendlyName(typeId.Type)} [{sizeof(char) * typeId.ID.Length} bytes]", null, "SERIALIZE-WRITE");
-                writer.Write(typeId.ID);
+                if (Options.LOG_SERIALIZATION_WRITE)
+                    Logger.Info($"Writing TypeId of {Utils.FriendlyName(typeId.Type)} [{sizeof(char) * typeId.ID.Length} bytes]", null, "SERIALIZE-WRITE");
+                Write(typeId.ID);
                 return;
             }
 
             var typeDef = TypeIdUtils.Get(type.GetGenericTypeDefinition());
-            if (Options.LOG_SERIALIZATION_WRITE) Logger.Info($"Writing TypeId of {Utils.FriendlyName(typeDef.Type)} [{sizeof(char) * typeDef.ID.Length} bytes]", null, "SERIALIZE-WRITE");
-            writer.Write(typeDef.ID);
+            if (Options.LOG_SERIALIZATION_WRITE)
+                Logger.Info($"Writing TypeId of {Utils.FriendlyName(typeDef.Type)} [{sizeof(char) * typeDef.ID.Length} bytes]", null, "SERIALIZE-WRITE");
+            Write(typeDef.ID);
             var genericArguments = type.GetGenericArguments();
             foreach (var arg in genericArguments) {
                 WriteTypeId(TypeIdUtils.Get(arg));

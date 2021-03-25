@@ -15,7 +15,7 @@ namespace shared.model {
         /**
 		 * Returns who has won.
 		 * 
-		 * If there are any 0 on the board, noone has won yet (return 0).
+		 * If there are any 0 on the board, no-one has won yet (return 0).
 		 * If there are only 1's on the board, player 1 has won (return 1).
 		 * If there are only 2's on the board, player 2 has won (return 2).
 		 */

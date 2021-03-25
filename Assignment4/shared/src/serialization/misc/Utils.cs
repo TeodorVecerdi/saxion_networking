@@ -6,8 +6,8 @@ using shared.serialization.model;
 
 namespace shared.serialization {
     public static class Utils {
+        
         public static bool CanSerializeField(FieldInfo field) => field.GetCustomAttribute<SerializeAttribute>() != null;
-
         public static bool IsTriviallySerializable(Type type) => BuiltinTypes.Contains(type) || type.IsEnum || CanSerializeList(type) || CanSerializeDictionary(type);
 
         public static InstantiateCtor Ctor(this Type type) {
