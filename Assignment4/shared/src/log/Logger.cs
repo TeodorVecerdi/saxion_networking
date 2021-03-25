@@ -7,8 +7,10 @@ using shared.serialization;
 public static class Logger {
     private const string logFormat = " [{0}.{1} (at {3}:{2})]";
     private const bool kIncludeStackTrace = false;
-    private const bool kIncludeFileInfo = false;
+    private const bool kIncludeFileInfo = true;
     private const bool kIncludeTimestamp = false;
+
+    private static int stackJump = -1;
 
     private static string GetString(object message) {
         if (message == null) return "Null";
@@ -18,6 +20,7 @@ public static class Logger {
 
     [Conditional("DEBUG")]
     public static void Except(Exception exception, object ctx, bool includeStackTrace = kIncludeStackTrace, bool includeFileInfo = kIncludeFileInfo, bool includeTimestamp = kIncludeTimestamp) {
+        if (stackJump == -1) stackJump = 4;
         var message = exception.Message;
         if (includeStackTrace) message += $"\n{exception.StackTrace}";
         Error(message, ctx, "EXCEPTION", includeFileInfo, includeTimestamp);
@@ -25,27 +28,31 @@ public static class Logger {
     
     [Conditional("DEBUG")]
     public static void Colored(object message, ConsoleColor color, object ctx = null, string messageTitle = "LOG", bool includeFileInfo = kIncludeFileInfo, bool includeTimestamp = kIncludeTimestamp) {
+        if (stackJump == -1) stackJump = 3;
         WriteMessage(message, ctx, messageTitle, color, includeFileInfo, includeTimestamp);
     }
 
     [Conditional("DEBUG")]
     public static void Info(object message, object ctx = null, string messageTitle = "INFO", bool includeFileInfo = kIncludeFileInfo, bool includeTimestamp = kIncludeTimestamp) {
+        if (stackJump == -1) stackJump = 3;
         WriteMessage(message, ctx, messageTitle, ConsoleColor.Blue, includeFileInfo, includeTimestamp);
     }
 
     [Conditional("DEBUG")]
     public static void Warn(object message, object ctx = null, string messageTitle = "WARN", bool includeFileInfo = kIncludeFileInfo, bool includeTimestamp = kIncludeTimestamp) {
+        if (stackJump == -1) stackJump = 3;
         WriteMessage(message, ctx, messageTitle, ConsoleColor.DarkYellow, includeFileInfo, includeTimestamp);
     }
 
     [Conditional("DEBUG")]
     public static void Error(object message, object ctx = null, string messageTitle = "ERROR", bool includeFileInfo = kIncludeFileInfo, bool includeTimestamp = kIncludeTimestamp) {
+        if (stackJump == -1) stackJump = 3;
         WriteMessage(message, ctx, messageTitle, ConsoleColor.DarkRed, includeFileInfo, includeTimestamp);
     }
     
     [Conditional("DEBUG")]
     private static void WriteMessage(object message, object ctx, string messageTitle, ConsoleColor color, bool includeFileInfo, bool includeTimestamp) {
-        var fileInfo = includeFileInfo ? GetFileInfo() : "";
+        var fileInfo = includeFileInfo ? GetFileInfo(stackJump) : "";
         messageTitle = includeTimestamp ? GetTitleWithDate(messageTitle) : messageTitle;
 
         Console.ForegroundColor = ConsoleColor.White;
@@ -57,14 +64,15 @@ public static class Logger {
         Console.ForegroundColor = ConsoleColor.DarkGray;
         Console.WriteLine(fileInfo);
         Console.ResetColor();
+        stackJump = -1;
     }
 
     private static string GetTitleWithDate(string messageTitle) {
         return $"{DateTime.Now:HH:mm:ss dd/mm/yyyy} - {messageTitle}";
     }
 
-    private static string GetFileInfo() {
-        var stack = new StackFrame(2, true);
+    private static string GetFileInfo(int skipFrames) {
+        var stack = new StackFrame(skipFrames, true);
         var mth = stack.GetMethod();
         var fname = stack.GetFileName();
         var lineNumber = stack.GetFileLineNumber();
