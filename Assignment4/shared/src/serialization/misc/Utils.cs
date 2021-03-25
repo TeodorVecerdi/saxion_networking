@@ -8,12 +8,16 @@ namespace shared.serialization {
     public static class Utils {
         public static bool CanSerializeField(FieldInfo field) {
             if (field.GetCustomAttribute<SerializeAttribute>() == null) return false;
-            if (BuiltinTypes.Contains(field.FieldType) || field.FieldType.IsEnum || field.FieldType.GetCustomAttribute<SerializeAttribute>() != null || CanSerializeList(field.FieldType)) return true;
+            if (IsTriviallySerializable(field.FieldType) || field.FieldType.GetCustomAttribute<SerializeAttribute>() != null) return true;
             return false;
+        }
+        
+        public static bool CanSerializeType(Type type) {
+            return IsTriviallySerializable(type) || type.GetCustomAttribute<SerializeAttribute>() != null;
         }
 
         public static bool IsTriviallySerializable(Type type) {
-            return BuiltinTypes.Contains(type) || type.IsEnum || CanSerializeList(type);
+            return BuiltinTypes.Contains(type) || type.IsEnum || CanSerializeList(type) || CanSerializeDictionary(type);
         }
 
         public static InstantiateCtor Ctor(this Type type) {
@@ -138,7 +142,9 @@ namespace shared.serialization {
 
         public static bool IsArray(Type type) => type.IsArray && type.GetArrayRank() == 1;
         public static bool IsList(Type type) => type.IsGenericType && type.GetGenericTypeDefinition() == typeof(List<>);
+        public static bool IsDictionary(Type type) => type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Dictionary<,>);
         public static bool CanSerializeList(Type type) => IsArray(type) || IsList(type);
+        public static bool CanSerializeDictionary(Type type) => IsDictionary(type);
         public static Type GetListElementType(Type type) => IsList(type) ? type.GenericTypeArguments[0] : type.GetElementType();
 
         public static readonly HashSet<Type> BuiltinTypes = new HashSet<Type> {

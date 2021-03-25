@@ -1,6 +1,10 @@
 ﻿using System;
 using System.Collections;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
+using System.Reflection;
+using shared.log;
 
 namespace shared.serialization {
     /**
@@ -31,7 +35,8 @@ namespace shared.serialization {
         }
 
         public void Write(Type type, object obj) {
-            if (Serializer.LOG_SERIALIZATION) Logger.Info($"Writing type {Utils.FriendlyName(type)} [{obj}]", null, "SERIALIZE");
+            var size = GetSize(type, obj);
+            if (Options.LOG_SERIALIZATION_WRITE) Logger.Info($"Writing type {Utils.FriendlyName(type)} [{(size == -1?"Unknown":size.ToString())} bytes]", null, "SERIALIZE-WRITE");
             if (type == typeof(bool)) writer.Write((bool) obj);
             else if (type == typeof(byte)) writer.Write((byte) obj);
             else if (type == typeof(string)) writer.Write((string) obj);
@@ -41,6 +46,7 @@ namespace shared.serialization {
             else if (type == typeof(uint)) writer.Write((uint) obj);
             else if (type == typeof(long)) writer.Write((long) obj);
             else if (Utils.CanSerializeList(type)) WriteList(type, obj);
+            else if (Utils.CanSerializeDictionary(type)) WriteDictionary(type, obj);
             else if (type.IsEnum) WriteEnum(type, obj);
             else obj.Serialize(type, this);
         }
@@ -50,7 +56,7 @@ namespace shared.serialization {
         }
 
         public object Read(Type type) {
-            if (Serializer.LOG_SERIALIZATION) Logger.Info($"Reading type {Utils.FriendlyName(type)}", null, "SERIALIZE");
+            if (Options.LOG_SERIALIZATION_READ) Logger.Info($"Reading type {Utils.FriendlyName(type)}", null, "SERIALIZE-READ");
             if (type == typeof(bool)) return reader.ReadBoolean();
             if (type == typeof(byte)) return reader.ReadByte();
             if (type == typeof(string)) return reader.ReadString();
@@ -60,6 +66,7 @@ namespace shared.serialization {
             if (type == typeof(uint)) return reader.ReadUInt32();
             if (type == typeof(long)) return reader.ReadInt64();
             if (Utils.CanSerializeList(type)) return ReadList(type);
+            if (Utils.CanSerializeDictionary(type)) return ReadDictionary(type);
             if (type.IsEnum) return ReadEnum(type);
             return this.Deserialize();
         }
@@ -94,6 +101,46 @@ namespace shared.serialization {
 
             return list;
         }
+        
+        private void WriteDictionary(Type type, object obj) {
+            var keyType = type.GetGenericArguments()[0];
+            var valueType = type.GetGenericArguments()[1];
+            var dict = (IDictionary) obj;
+            var keyCollection = dict.Keys;
+            var keyList = (IList) Activator.CreateInstance(typeof(List<>).MakeGenericType(keyType));
+            Debug.Assert(keyList != null, nameof(keyList) + " != null");
+            foreach (var key in keyCollection) {
+                keyList.Add(key);
+            }
+            
+            var valueCollection = dict.Values;
+            var valueList = (IList) Activator.CreateInstance(typeof(List<>).MakeGenericType(valueType));
+            Debug.Assert(valueList != null, nameof(valueList) + " != null");
+            foreach (var value in valueCollection) {
+                valueList.Add(value);
+            }
+            WriteList(typeof(List<>).MakeGenericType(keyType), keyList);
+            WriteList(typeof(List<>).MakeGenericType(valueType), valueList);
+        }
+
+        private object ReadDictionary(Type type) {
+            var keyType = type.GetGenericArguments()[0];
+            var valueType = type.GetGenericArguments()[1];
+            var keyList = (IList) ReadList(typeof(List<>).MakeGenericType(keyType));
+            var valueList = (IList) ReadList(typeof(List<>).MakeGenericType(valueType));
+            Debug.Assert(keyList != null, nameof(keyList) + " != null");
+            Debug.Assert(valueList != null, nameof(valueList) + " != null");
+            Debug.Assert(keyList.Count == valueList.Count, $"{nameof(keyList)}.Count == {nameof(valueList)}.Count");
+            
+            var dict = (IDictionary) Activator.CreateInstance(type);
+            Debug.Assert(dict != null, nameof(dict) + " != null");
+            for (var i = 0; i < keyList.Count; i++) {
+                Debug.Assert(keyList[i] != null, $"{nameof(keyList)}[i] != null");
+                dict.Add(keyList[i], valueList[i]);
+            }
+
+            return dict;
+        }
 
         private void WriteEnum(Type type, object obj) {
             var underlyingType = type.GetEnumUnderlyingType();
@@ -105,6 +152,45 @@ namespace shared.serialization {
             var underlyingType = type.GetEnumUnderlyingType();
             var underlyingValue = Read(underlyingType);
             return Enum.ToObject(type, underlyingValue);
+        }
+
+        public void WriteTypeId(TypeId typeId) {
+            var id = typeId.ID;
+            if (Options.LOG_SERIALIZATION_WRITE) Logger.Info($"Writing TypeId of {Utils.FriendlyName(typeId.Type)} [{id.Length} bytes]", null, "SERIALIZE-WRITE");
+            writer.Write(id.Length);
+            writer.Write(id);
+        }
+
+        public TypeId ReadTypeId() {
+            var length = reader.ReadInt32();
+            if (Options.LOG_SERIALIZATION_READ) Logger.Info($"Reading TypeId [{length} bytes]", null, "SERIALIZE-READ");
+            var id = reader.ReadBytes(length);
+            return TypeIdUtil.Get(id);
+        }
+
+        private int GetSize(Type type, object obj) {
+            if (Utils.BuiltinTypes.Contains(type)) return type.SizeOf();
+            if (Utils.IsArray(type)) {
+                var elemSize = GetSize(type.GetElementType(), type.GetElementType().Instance());
+                if (elemSize == -1) return -1;
+                return elemSize * ((Array) obj).GetLength(0);
+            }
+            if (Utils.IsList(type)) {
+                var elemSize = GetSize(type.GetElementType(), type.GetElementType().Instance());
+                if (elemSize == -1) return -1;
+                return elemSize * ((IList) obj).Count;
+            }
+            if (Utils.IsDictionary(type)) {
+                var keyType = type.GetGenericArguments()[0];
+                var valueType = type.GetGenericArguments()[1];
+                var keySize = GetSize(keyType, keyType.Instance());
+                var valueSize = GetSize(valueType, valueType.Instance());
+                if (keySize == -1 || valueSize == -1) return -1;
+                return (keySize + valueSize) * ((ICollection) obj).Count;
+            }
+            if (type.IsEnum)return type.GetEnumUnderlyingType().SizeOf();
+
+            return -1;
         }
 
         /**
