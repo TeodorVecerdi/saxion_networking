@@ -1,6 +1,7 @@
 ﻿using shared;
 using shared.protocol;
 using shared.serialization;
+using UnityEditor.VersionControl;
 using UnityEngine;
 
 /**
@@ -38,8 +39,10 @@ public class LobbyState : ApplicationStateWithView<LobbyView> {
      */
     private void OnTextEntered(string text) {
         view.ClearInput();
-
-        AddOutput("(no-one else will see this because I broke the chat on purpose):" + text);
+        var messageText = text.Trim();
+        if(string.IsNullOrWhiteSpace(messageText)) return;
+        var message = new ChatMessage {Message = messageText};
+        fsm.channel.SendMessage(message);
     }
 
     /**

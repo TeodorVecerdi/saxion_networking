@@ -1,4 +1,5 @@
-﻿using shared.serialization;
+﻿using shared.model;
+using shared.serialization;
 
 namespace shared.protocol
 {
@@ -10,5 +11,6 @@ namespace shared.protocol
     {
         public enum RequestResult { ACCEPTED, CONFLICT } //can add different result states if you want
         [Serialize] public RequestResult Result;
+        [Serialize] public PlayerInfo PlayerInfo;
     }
 }

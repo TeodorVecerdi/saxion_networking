@@ -1,4 +1,5 @@
-﻿using shared;
+﻿using System.Linq;
+using shared;
 using shared.protocol;
 using shared.serialization;
 
@@ -44,11 +45,20 @@ namespace server {
         private void HandlePlayerJoinRequest(PlayerJoinRequest message, TcpMessageChannel sender) {
             Logger.Info("Moving new client to accepted...", this, "ROOM-INFO");
 
-            var playerJoinResponse = new PlayerJoinResponse {Result = PlayerJoinResponse.RequestResult.ACCEPTED};
-            sender.SendMessage(playerJoinResponse);
+            if (IsJoinRequestValid(message)) {
+                var playerInfo = Server.GetPlayerInfo(sender);
+                playerInfo.Name = message.Name;
+                sender.SendMessage(new PlayerJoinResponse {Result = PlayerJoinResponse.RequestResult.ACCEPTED, PlayerInfo = playerInfo});
+                RemoveMember(sender);
+                Server.GetLobbyRoom().AddMember(sender);
+                return;
+            }
 
-            RemoveMember(sender);
-            Server.GetLobbyRoom().AddMember(sender);
+            sender.SendMessage(new PlayerJoinResponse {Result = PlayerJoinResponse.RequestResult.CONFLICT, PlayerInfo = null});
+        }
+
+        private bool IsJoinRequestValid(PlayerJoinRequest request) {
+            return Server.GetPlayerInfo(info => info.Name == request.Name).Count == 0;
         }
     }
 }

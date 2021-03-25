@@ -501,8 +501,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 1125.5491, y: -61.52662}
-  m_SizeDelta: {x: 2231.0981, y: 103.05324}
+  m_AnchoredPosition: {x: 437.28873, y: -61.52662}
+  m_SizeDelta: {x: 854.57745, y: 103.05324}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &189292562
 MonoBehaviour:
@@ -637,7 +637,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: -0.000030517578, y: 0.000045776367}
-  m_SizeDelta: {x: 0, y: 83.69942}
+  m_SizeDelta: {x: 0, y: 83.73239}
   m_Pivot: {x: 0, y: 1}
 --- !u!114 &207925120
 MonoBehaviour:
@@ -915,8 +915,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 1125.5491, y: -493.35284}
-  m_SizeDelta: {x: 2231.0981, y: 730.26483}
+  m_AnchoredPosition: {x: 437.28873, y: -493.35284}
+  m_SizeDelta: {x: 854.57745, y: 730.26483}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &644284023
 MonoBehaviour:
@@ -1201,8 +1201,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 1125.5491, y: -903.6524}
-  m_SizeDelta: {x: 2231.0981, y: 60}
+  m_AnchoredPosition: {x: 437.28873, y: -903.6524}
+  m_SizeDelta: {x: 854.57745, y: 60}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &818717954
 MonoBehaviour:
@@ -1318,6 +1318,7 @@ GameObject:
   - component: {fileID: 835409716}
   - component: {fileID: 835409715}
   - component: {fileID: 835409717}
+  - component: {fileID: 835409718}
   m_Layer: 0
   m_Name: ClientFSM
   m_TagString: Untagged
@@ -1376,6 +1377,20 @@ MonoBehaviour:
     If the client jumps immediately
     to the LobbyState make sure you turn the auto connect settings off.'
   noteType: 0
+--- !u!114 &835409718
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 835409714}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9402b36983084500b0775d2c090d3e2f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  SelfInfo:
+    Name: 
 --- !u!1001 &862238714
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1802,7 +1817,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 92b20ee50f6e84d448ac0d616bf3d07b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  CellStateSprites: []
+  CellStateSprites:
+  - {fileID: 5663061954668274717, guid: dba467ce3a15f624294aff1e3bc45eff, type: 3}
+  - {fileID: 6007627129536956325, guid: dba467ce3a15f624294aff1e3bc45eff, type: 3}
+  - {fileID: -7486092956772349302, guid: dba467ce3a15f624294aff1e3bc45eff, type: 3}
 --- !u!1 &885977556
 GameObject:
   m_ObjectHideFlags: 0
@@ -2049,7 +2067,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _view: {fileID: 1669841060}
-  AutoQueueForGame: 0
+  AutoQueueForGame: 1
 --- !u!1 &955652610
 GameObject:
   m_ObjectHideFlags: 0
@@ -2500,7 +2518,7 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1344691635}
   m_HandleRect: {fileID: 1344691634}
   m_Direction: 2
-  m_Value: 1
+  m_Value: 0
   m_Size: 1
   m_NumberOfSteps: 0
   m_OnValueChanged:
@@ -3222,8 +3240,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 1125.5491, y: -986.8262}
-  m_SizeDelta: {x: 2231.0981, y: 76.013245}
+  m_AnchoredPosition: {x: 437.28873, y: -986.8262}
+  m_SizeDelta: {x: 854.57745, y: 76.013245}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1649940685
 MonoBehaviour:
@@ -3862,6 +3880,10 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 109254, guid: 67117722a812a2e46ab8cb8eafbf5f5e, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 132536, guid: 67117722a812a2e46ab8cb8eafbf5f5e, type: 3}
       propertyPath: m_Name
       value: IngameDebugConsole
@@ -4469,8 +4491,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 1090.5491, y: -41.84971}
-  m_SizeDelta: {x: 2141.0981, y: 43.699417}
+  m_AnchoredPosition: {x: 402.28873, y: -41.866196}
+  m_SizeDelta: {x: 764.57745, y: 43.73239}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &2078024754
 MonoBehaviour:

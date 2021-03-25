@@ -35,6 +35,7 @@ public class GameBoard : MonoBehaviour, IPointerClickHandler {
     public void SetBoardData(TicTacToeBoardData board) {
         //pass the whole board to our view
         int[] boardData = board.Board;
+        Logger.Warn($"Is board data null? {boardData == null}", this);
 
         var cellsToSet = Mathf.Min(boardData.Length, cells.Count);
 

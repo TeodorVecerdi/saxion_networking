@@ -22,7 +22,7 @@ public class LoginState : ApplicationStateWithView<LoginView> {
         if (!AutoConnectWithRandomName) return;
 
         var names = new List<string> {"Pergu", "Korgulg", "Xaguk", "Rodagog", "Kodagog", "Dular", "Buggug", "Gruumsh"};
-        view.userName = names[Random.Range(0, names.Count)];
+        view.UserName = names[Random.Range(0, names.Count)];
         Connect();
     }
 
@@ -37,10 +37,11 @@ public class LoginState : ApplicationStateWithView<LoginView> {
      * Connect to the server (with some client side validation)
      */
     private void Connect() {
-        if (view.userName == "") {
+        if (view.UserName == "") {
             view.TextConnectResults = "Please enter a name first";
             return;
         }
+        view.TextConnectResults = "";
 
         //connect to the server and on success try to join the lobby
         if (fsm.channel.Connect(ServerIP, ServerPort)) {
@@ -52,7 +53,7 @@ public class LoginState : ApplicationStateWithView<LoginView> {
 
     private void TryToJoinLobby() {
         //Construct a player join request based on the user name 
-        var playerJoinRequest = new PlayerJoinRequest {Name = view.userName};
+        var playerJoinRequest = new PlayerJoinRequest {Name = view.UserName};
         fsm.channel.SendMessage(playerJoinRequest);
     }
 
@@ -72,11 +73,11 @@ public class LoginState : ApplicationStateWithView<LoginView> {
     private void HandlePlayerJoinResponse(PlayerJoinResponse message) {
         //Dont do anything with this info at the moment, just leave it to the RoomJoinedEvent
         //We could handle duplicate name messages, get player info etc here
-        /*
-        if (pMessage.result == PlayerJoinResponse.State.ACCEPTED)
-        {
+        if (message.Result == PlayerJoinResponse.RequestResult.ACCEPTED) {
+            State.Instance.SelfInfo = message.PlayerInfo;
+        } else if (message.Result == PlayerJoinResponse.RequestResult.CONFLICT) {
+            view.TextConnectResults = "Name is already taken. Please choose another one.";
         }
-        */
     }
 
     private void HandleRoomJoinedEvent(RoomJoinedEvent message) {

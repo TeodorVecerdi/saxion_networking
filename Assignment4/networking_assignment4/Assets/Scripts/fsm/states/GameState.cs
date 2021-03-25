@@ -1,32 +1,33 @@
 ﻿using shared;
 using shared.protocol;
-using shared.serialization;
 
 /**
  * This is where we 'play' a game.
  */
 public class GameState : ApplicationStateWithView<GameView> {
-    //just for fun we keep track of how many times a player clicked the board
-    //note that in the current application you have no idea whether you are player 1 or 2
-    //normally it would be better to maintain this sort of info on the server if it is actually important information
-    private int player1MoveCount = 0;
-    private int player2MoveCount = 0;
+    private bool receivedGameStarted;
+    private int playerOrder;
+    private int currentOrder;
+    private string otherPlayerName;
 
     public override void EnterState() {
         base.EnterState();
-
-        view.gameBoard.OnCellClicked += _onCellClicked;
+        view.playerLabel1.text = "Waiting...";
+        view.playerLabel2.text = "Waiting...";
+        view.gameBoard.OnCellClicked += OnCellClicked;
     }
 
-    private void _onCellClicked(int cellIndex) {
-        var makeMoveRequest = new MakeMoveRequest {Move = cellIndex};
+    private void OnCellClicked(int cellIndex) {
+        if (!receivedGameStarted || playerOrder != currentOrder) return;
 
+        var makeMoveRequest = new MakeMoveRequest {Move = cellIndex};
         fsm.channel.SendMessage(makeMoveRequest);
     }
 
     public override void ExitState() {
         base.ExitState();
-        view.gameBoard.OnCellClicked -= _onCellClicked;
+        receivedGameStarted = false;
+        view.gameBoard.OnCellClicked -= OnCellClicked;
     }
 
     private void Update() {
@@ -34,23 +35,35 @@ public class GameState : ApplicationStateWithView<GameView> {
     }
 
     protected override void HandleNetworkMessage(object message) {
-        if (message is MakeMoveResult makeMoveResult) {
-            HandleMakeMoveResult(makeMoveResult);
-        }
+        if (message is MakeMoveResult makeMoveResult) HandleMakeMoveResult(makeMoveResult);
+        else if (message is GameStarted gameStarted) HandleGameStarted(gameStarted);
     }
 
     private void HandleMakeMoveResult(MakeMoveResult makeMoveResult) {
         view.gameBoard.SetBoardData(makeMoveResult.BoardData);
+        currentOrder = makeMoveResult.NextTurn;
 
-        //some label display
-        if (makeMoveResult.Player == 1) {
-            player1MoveCount++;
-            view.playerLabel1.text = $"Player 1 (Movecount: {player1MoveCount})";
-        }
+        UpdateLabels();
+    }
 
-        if (makeMoveResult.Player == 2) {
-            player2MoveCount++;
-            view.playerLabel2.text = $"Player 2 (Movecount: {player2MoveCount})";
+    private void HandleGameStarted(GameStarted gameStarted) {
+        playerOrder = gameStarted.Order;
+        currentOrder = 0;
+        otherPlayerName = gameStarted.OtherPlayerName;
+        receivedGameStarted = true;
+
+        UpdateLabels();
+    }
+
+    private void UpdateLabels() {
+        var selfLabel = playerOrder == 0 ? view.playerLabel1 : view.playerLabel2;
+        var otherLabel = playerOrder == 0 ? view.playerLabel2 : view.playerLabel1;
+        if (currentOrder == playerOrder) {
+            selfLabel.text = $"<b>{State.Instance.SelfInfo.Name}</b>";
+            otherLabel.text = $"{otherPlayerName}";
+        } else {
+            selfLabel.text = $"{State.Instance.SelfInfo.Name}";
+            otherLabel.text = $"<b>{otherPlayerName}</b>";
         }
     }
 }

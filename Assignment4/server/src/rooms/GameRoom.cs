@@ -15,6 +15,8 @@ namespace server {
 	 */
     public class GameRoom : Room {
         public bool IsGameInPlay { get; private set; }
+        private int currentTurn;
+        private int playerIdTurnOffset;
 
         //wraps the board to play on...
         private readonly TicTacToeBoard board = new TicTacToeBoard();
@@ -25,9 +27,18 @@ namespace server {
         public void StartGame(TcpMessageChannel player1, TcpMessageChannel player2) {
             if (IsGameInPlay) throw new Exception("Programmer error duuuude.");
 
+            currentTurn = 0;
             IsGameInPlay = true;
             AddMember(player1);
             AddMember(player2);
+
+            var player1Info = Server.GetPlayerInfo(player1);
+            var player2Info = Server.GetPlayerInfo(player2);
+
+            var player1Turn = Rand.Bool ? 0 : 1;
+            playerIdTurnOffset = player1Turn;
+            player1.SendMessage(new GameStarted {Order = player1Turn, OtherPlayerName = player2Info.Name});
+            player2.SendMessage(new GameStarted {Order = 1-player1Turn, OtherPlayerName = player1Info.Name});
         }
 
         protected internal override void AddMember(TcpMessageChannel member) {
@@ -56,14 +67,20 @@ namespace server {
         }
 
         private void HandleMakeMoveRequest(MakeMoveRequest message, TcpMessageChannel sender) {
-            //we have two players, so index of sender is 0 or 1, which means playerID becomes 1 or 2
-            var playerID = IndexOfMember(sender) + 1;
-            //make the requested move (0-8) on the board for the player
-            board.MakeMove(message.Move, playerID);
+            var playerID = IndexOfMember(sender);
+            if ((playerID + playerIdTurnOffset) % 2 != currentTurn) {
+                var turn = (playerID + playerIdTurnOffset) % 2;
+                Logger.Error($"Player with id {playerID} and turnIndex {turn} attempted to make a move when turn was {currentTurn}", this, "WARNING");
+                return;
+            }
+            
+            board.MakeMove(message.Move, playerID+1);
+            currentTurn = 1 - playerID; // next player 
 
             //and send the result of the board state back to all clients
             var makeMoveResult = new MakeMoveResult {
                 Player = playerID,
+                NextTurn = currentTurn,
                 BoardData = board.GetBoardData()
             };
             SendToAll(makeMoveResult);

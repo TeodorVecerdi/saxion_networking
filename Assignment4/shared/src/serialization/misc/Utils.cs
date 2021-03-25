@@ -100,7 +100,7 @@ namespace shared.serialization {
                 if (type.IsGenericType) return GenericFriendlyName(type);
                 if (type.IsArray) return ArrayFriendlyName(type);
                 return type.Name;
-            } catch (Exception e) {
+            } catch {
                 Logger.Error($"Could not get friendly name for type {type.FullName}");
                 return type.FullName;
             }

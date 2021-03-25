@@ -116,8 +116,9 @@ namespace server {
         /**
 		 * Sends a message to all members in the room.
 		 */
-        protected void SendToAll(object message) {
-            foreach (TcpMessageChannel member in members) {
+        protected void SendToAll(object message, TcpMessageChannel except = null) {
+            foreach (var member in members) {
+                if(member == except) continue;
                 member.SendMessage(message);
             }
         }
