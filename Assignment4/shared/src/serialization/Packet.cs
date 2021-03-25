@@ -156,15 +156,13 @@ namespace shared.serialization {
 
         public void WriteTypeId(TypeId typeId) {
             var id = typeId.ID;
-            if (Options.LOG_SERIALIZATION_WRITE) Logger.Info($"Writing TypeId of {Utils.FriendlyName(typeId.Type)} [{id.Length} bytes]", null, "SERIALIZE-WRITE");
-            writer.Write(id.Length);
+            if (Options.LOG_SERIALIZATION_WRITE) Logger.Info($"Writing TypeId of {Utils.FriendlyName(typeId.Type)} [{sizeof(char) * id.Length} bytes]", null, "SERIALIZE-WRITE");
             writer.Write(id);
         }
 
         public TypeId ReadTypeId() {
-            var length = reader.ReadInt32();
-            if (Options.LOG_SERIALIZATION_READ) Logger.Info($"Reading TypeId [{length} bytes]", null, "SERIALIZE-READ");
-            var id = reader.ReadBytes(length);
+            var id = Read<string>();
+            if (Options.LOG_SERIALIZATION_READ) Logger.Info($"Reading TypeId [{sizeof(char) * id.Length} bytes]", null, "SERIALIZE-READ");
             return TypeIdUtil.Get(id);
         }
 
