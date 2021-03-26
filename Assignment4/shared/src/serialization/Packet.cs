@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using shared.log;
 
 namespace shared.serialization {
@@ -218,13 +217,15 @@ namespace shared.serialization {
         private int GetSize(Type type, object obj) {
             if (Utils.BuiltinTypes.Contains(type)) return type.SizeOf();
             if (Utils.IsArray(type)) {
-                var elemSize = GetSize(type.GetElementType(), type.GetElementType().Instance());
+                var elemType = Utils.GetListElementType(type);
+                var elemSize = GetSize(elemType, elemType.Instance());
                 if (elemSize == -1) return -1;
                 return elemSize * ((Array) obj).GetLength(0);
             }
 
             if (Utils.IsList(type)) {
-                var elemSize = GetSize(type.GetElementType(), type.GetElementType().Instance());
+                var elemType = Utils.GetListElementType(type);
+                var elemSize = GetSize(elemType, elemType.Instance());
                 if (elemSize == -1) return -1;
                 return elemSize * ((IList) obj).Count;
             }

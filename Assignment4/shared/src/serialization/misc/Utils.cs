@@ -136,6 +136,8 @@ namespace shared.serialization {
         public static bool CanSerializeList(Type type) => IsArray(type) || IsList(type);
         public static bool CanSerializeDictionary(Type type) => IsDictionary(type);
         public static Type GetListElementType(Type type) => IsList(type) ? type.GenericTypeArguments[0] : type.GetElementType();
+        public static Type GetDictionaryKeyType(Type type) => type.GenericTypeArguments[0];
+        public static Type GetDictionaryValueType(Type type) => type.GenericTypeArguments[1];
 
         public static readonly HashSet<Type> BuiltinTypes = new HashSet<Type> {
             typeof(bool), typeof(byte), typeof(string), typeof(float),
