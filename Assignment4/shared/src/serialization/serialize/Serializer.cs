@@ -101,7 +101,7 @@ namespace shared.serialization {
 
             // Check if UnityEngine serialization callback exists is present
             try {
-                var interfaceType = TypeIdUtils.FindTypeByName("UnityEngine.ISerializationCallbackReceiver");
+                var interfaceType = TypeIdUtils.FindTypeByName("UnityEngine.ISerializationCallbackReceiver", true);
                 Utils.KeepUnusedVariable(ref interfaceType);
             } catch {
                 // do nothing if not present
@@ -124,7 +124,7 @@ namespace shared.serialization {
 
             // Check if UnityEngine serialization callback exists is present
             try {
-                var interfaceType = TypeIdUtils.FindTypeByName("UnityEngine.ISerializationCallbackReceiver");
+                var interfaceType = TypeIdUtils.FindTypeByName("UnityEngine.ISerializationCallbackReceiver", true);
                 Utils.KeepUnusedVariable(ref interfaceType);
             } catch {
                 // do nothing if not present

@@ -13,11 +13,12 @@ namespace shared.serialization {
         internal static TypeId Get(string name) => cache.GetCached(name);
 
         private static ConcurrentDictionary<string, Type> typeCache;
-        public static Type FindTypeByName(string name) {
+        public static Type FindTypeByName(string name) => FindTypeByName(name, false); 
+        public static Type FindTypeByName(string name, bool suppressErrors) {
             if(typeCache == null) typeCache = new ConcurrentDictionary<string, Type>();
             if (typeCache == null) {
                 var e = new Exception("Could not create type cache.");
-                Logger.Except(e, new TypeId((string) null), true, true, true);
+                if(!suppressErrors) Logger.Except(e, new TypeId((string) null), true, true, true);
                 throw e;
             }
 
@@ -61,7 +62,7 @@ namespace shared.serialization {
                     }
                 }
             } catch (Exception e) {
-                Logger.Except(e, new TypeId((string)null), true, true, true);
+                if(!suppressErrors) Logger.Except(e, new TypeId((string)null), true, true, true);
                 throw;
             }
 
@@ -71,7 +72,7 @@ namespace shared.serialization {
             }
             
             var exception = new Exception($"Could not find type {name} in any loaded or referenced assembly.");
-            Logger.Except(exception, new TypeId((string) null), true, true, true);
+            if(!suppressErrors) Logger.Except(exception, new TypeId((string) null), true, true, true);
             throw exception;
         }
     }
