@@ -5,7 +5,7 @@ using System.Linq;
 using System.Reflection;
 
 namespace shared.serialization {
-    public class TypeId {
+    internal class TypeId {
         private static int nextId = 0;
         private readonly int currentId;
 

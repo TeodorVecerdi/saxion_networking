@@ -4,13 +4,13 @@ using System.Linq;
 using System.Reflection;
 
 namespace shared.serialization {
-    public static class TypeIdUtils {
+    internal static class TypeIdUtils {
         private static readonly TypeIdCache cache = new TypeIdCache();
-        public static TypeId ID(this Type type) => Get(type);
-        public static TypeId AsType(this string name) => Get(name);
+        internal static TypeId ID(this Type type) => Get(type);
+        internal static TypeId AsType(this string name) => Get(name);
 
-        public static TypeId Get(Type type) => cache.GetCached(type);
-        public static TypeId Get(string name) => cache.GetCached(name);
+        internal static TypeId Get(Type type) => cache.GetCached(type);
+        internal static TypeId Get(string name) => cache.GetCached(name);
 
         private static ConcurrentDictionary<string, Type> typeCache;
         public static Type FindTypeByName(string name) {

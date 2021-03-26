@@ -73,7 +73,7 @@ namespace shared.serialization {
         /**
          * Send the given message through the underlying TcpClient's NetStream.
          */
-        public void SendMessage(object message) {
+        public void SendMessage(object message, SerializeMode serializeMode = SerializeMode.Default) {
             if (HasErrors()) {
                 Logger.Error("This channel has errors, cannot send.", this);
                 return;
@@ -83,7 +83,7 @@ namespace shared.serialization {
             try {
                 //grab the required bytes from either the packet or the cache
                 if (lastSerializedMessage != message) {
-                    lastSerializedBytes = message.Serialize();
+                    lastSerializedBytes = Serializer.Serialize(message, serializeMode);
                     lastSerializedMessage = message;
                 }
 
@@ -114,8 +114,8 @@ namespace shared.serialization {
             try {
                 Logger.Warn("Receiving message...", this, "RECV");
 
-                byte[] inBytes = StreamUtil.Read(stream);
-                var message = inBytes.Deserialize();
+                var inBytes = StreamUtil.Read(stream);
+                var message = Serializer.Deserialize(inBytes);
                 Logger.Warn($"Received {message}", this, "RECV");
 
                 return message;

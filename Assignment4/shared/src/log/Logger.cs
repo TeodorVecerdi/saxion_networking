@@ -57,7 +57,7 @@ public static class Logger {
 
         Console.ForegroundColor = ConsoleColor.White;
         Console.BackgroundColor = color;
-        Console.Write("[" + messageTitle + $"]{(ctx != null ? $" @ {Utils.FriendlyName(ctx.GetType())}" : "")}");
+        Console.Write("[" + messageTitle + $"]{(ctx != null ? $" @ {SerializeUtils.FriendlyName(ctx.GetType())}" : "")}");
         Console.ResetColor();
         Console.ForegroundColor = color;
         Console.Write($" {GetString(message)}");

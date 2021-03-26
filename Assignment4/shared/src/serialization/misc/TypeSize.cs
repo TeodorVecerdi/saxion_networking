@@ -4,7 +4,7 @@ using System.Reflection.Emit;
 
 namespace shared.serialization {
     // https://stackoverflow.com/a/32750028/5181524
-    public static class TypeSize {
+    internal static class TypeSize {
         /* Retrieves the size of the generic type T
             Returns the size of 'T' on success, 0 otherwise */
         public static int SizeOf<T>() {
