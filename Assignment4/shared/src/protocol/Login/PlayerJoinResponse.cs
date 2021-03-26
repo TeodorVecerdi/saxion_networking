@@ -9,8 +9,9 @@ namespace shared.protocol
      */
     public class PlayerJoinResponse
     {
-        public enum RequestResult { ACCEPTED, CONFLICT } //can add different result states if you want
+        public enum RequestResult { ACCEPTED, CONFLICT }
         [Serialized] public RequestResult Result;
+        [Serialized] public float ServerTimeout;
         [Serialized] public PlayerInfo PlayerInfo;
     }
 }

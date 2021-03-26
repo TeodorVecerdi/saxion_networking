@@ -7,7 +7,7 @@ namespace shared.model {
 	 * IF you want to actually implement a REAL Tic Tac Toe, that means you will have to add the data required for that (and serialize it!).
 	 */
     [System.Serializable]
-    public class TicTacToeBoardData : ASerializable {
+    public class TicTacToeBoardData : Printable {
         //board representation in 1d array, one element for each cell
         //0 is empty, 1 is player 1, 2 is player 2
         //might be that for your game, a 2d array is actually better

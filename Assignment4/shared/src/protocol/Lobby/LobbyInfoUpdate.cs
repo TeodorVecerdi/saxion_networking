@@ -6,7 +6,7 @@ namespace shared.protocol {
 	 * and how many of them are ready.
 	 */
     [System.Serializable]
-    public class LobbyInfoUpdate : ASerializable {
+    public class LobbyInfoUpdate : Printable {
         [Serialized] public int MemberCount;
         [Serialized] public int ReadyCount;
     }

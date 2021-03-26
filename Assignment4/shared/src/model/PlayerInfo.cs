@@ -6,7 +6,7 @@ namespace shared.model {
      * Add any data you want to store for the player here and make it extend ASerializable.
      */
     [System.Serializable]
-    public class PlayerInfo : ASerializable {
+    public class PlayerInfo : Printable {
         [Serialized] public string Name;
     }
 }

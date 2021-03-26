@@ -6,7 +6,7 @@ namespace shared.protocol {
      * Since the board is just an array of cells, move is a simple index.
      */
     [System.Serializable]
-    public class GameStarted : ASerializable {
+    public class GameStarted : Printable {
         [Serialized] public int Order;
         [Serialized] public string OtherPlayerName;
     }
