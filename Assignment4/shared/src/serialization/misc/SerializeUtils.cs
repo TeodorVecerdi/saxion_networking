@@ -141,8 +141,10 @@ namespace shared.serialization {
         public static Type GetDictionaryValueType(Type type) => type.GenericTypeArguments[1];
 
         public static readonly HashSet<Type> BuiltinTypes = new HashSet<Type> {
-            typeof(bool), typeof(byte), typeof(string), typeof(float),
-            typeof(double), typeof(int), typeof(uint), typeof(long)
+            typeof(bool), typeof(byte), typeof(sbyte), typeof(char), 
+            typeof(decimal), typeof(double), typeof(float), typeof(int), 
+            typeof(uint), typeof(long), typeof(ulong), typeof(short), 
+            typeof(ushort), typeof(string)
         };
 
         public class InstantiateCtor {

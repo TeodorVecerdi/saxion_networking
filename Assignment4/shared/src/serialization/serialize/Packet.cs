@@ -37,16 +37,28 @@ namespace shared.serialization {
         public void Write(Type type, object obj, SerializeMode serializeMode) {
             var size = GetSize(type, obj);
             if (LoggerOptions.LOG_SERIALIZATION_WRITE)
-                Logger.Info($"Writing type {SerializeUtils.FriendlyName(type)} [{(size == -1 ? "Unknown" : size.ToString())} bytes]", null, "SERIALIZE-WRITE");
+                Logger.Info($"Writing type {SerializeUtils.FriendlyName(type)} [{(size == -1 || size == 0 ? "??" : size.ToString())} bytes]", null, "SERIALIZE-WRITE");
+            
+            if (SerializeUtils.BuiltinTypes.Contains(type)) WriteBuiltin(type, obj);
+            else if (type.IsEnum) WriteEnum(type, obj);
+            else WriteNullable(type, obj, serializeMode);
+        }
+
+        private void WriteBuiltin(Type type, object obj) {
             if (type == typeof(bool)) writer.Write((bool) obj);
             else if (type == typeof(byte)) writer.Write((byte) obj);
-            else if (type == typeof(float)) writer.Write((float) obj);
+            else if (type == typeof(sbyte)) writer.Write((sbyte) obj);
+            else if (type == typeof(char)) writer.Write((char) obj);
+            else if (type == typeof(decimal)) writer.Write((decimal) obj);
             else if (type == typeof(double)) writer.Write((double) obj);
+            else if (type == typeof(float)) writer.Write((float) obj);
             else if (type == typeof(int)) writer.Write((int) obj);
             else if (type == typeof(uint)) writer.Write((uint) obj);
             else if (type == typeof(long)) writer.Write((long) obj);
-            else if (type.IsEnum) WriteEnum(type, obj);
-            else WriteNullable(type, obj, serializeMode);
+            else if (type == typeof(ulong)) writer.Write((ulong) obj);
+            else if (type == typeof(short)) writer.Write((short) obj);
+            else if (type == typeof(ushort)) writer.Write((ushort) obj);
+            else if (type == typeof(string)) WriteNullable(type, obj, SerializeMode.Default);
         }
 
         private void WriteNullable(Type type, object obj, SerializeMode serializeMode) {
@@ -73,15 +85,27 @@ namespace shared.serialization {
 
         public object Read(Type type, SerializeMode serializeMode) {
             if (LoggerOptions.LOG_SERIALIZATION_READ) Logger.Info($"Reading type {SerializeUtils.FriendlyName(type)}", null, "SERIALIZE-READ");
-            if (type == typeof(bool)) return reader.ReadBoolean();
-            if (type == typeof(byte)) return reader.ReadByte();
-            if (type == typeof(float)) return reader.ReadSingle();
-            if (type == typeof(double)) return reader.ReadDouble();
-            if (type == typeof(int)) return reader.ReadInt32();
-            if (type == typeof(uint)) return reader.ReadUInt32();
-            if (type == typeof(long)) return reader.ReadInt64();
+            
+            if (SerializeUtils.BuiltinTypes.Contains(type)) return ReadBuiltin(type);
             if (type.IsEnum) return ReadEnum(type);
             return ReadNullable(type, serializeMode);
+        }
+
+        private object ReadBuiltin(Type type) {
+            if (type == typeof(bool)) return reader.ReadBoolean();
+            if (type == typeof(byte)) return reader.ReadByte();
+            if (type == typeof(sbyte)) return reader.ReadSByte();
+            if (type == typeof(char)) return reader.ReadChar();
+            if (type == typeof(decimal)) return reader.ReadDecimal();
+            if (type == typeof(double)) return reader.ReadDouble(); 
+            if (type == typeof(float)) return reader.ReadSingle(); 
+            if (type == typeof(int)) return reader.ReadInt32();
+            if (type == typeof(uint)) return reader.ReadUInt32(); 
+            if (type == typeof(long)) return reader.ReadInt64(); 
+            if (type == typeof(ulong)) return reader.ReadUInt64(); 
+            if (type == typeof(short)) return reader.ReadInt16(); 
+            if (type == typeof(ushort)) return reader.ReadUInt16();
+            return ReadNullable(type, SerializeMode.Default);
         }
 
         private object ReadNullable(Type type, SerializeMode serializeMode) {
