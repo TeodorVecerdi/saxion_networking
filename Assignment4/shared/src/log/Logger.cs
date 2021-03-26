@@ -27,7 +27,7 @@ public static class Logger {
     }
     
     [Conditional("DEBUG")]
-    public static void Colored(object message, ConsoleColor color, object ctx = null, string messageTitle = "LOG", bool includeFileInfo = kIncludeFileInfo, bool includeTimestamp = kIncludeTimestamp) {
+    public static void Log(object message, ConsoleColor color, object ctx = null, string messageTitle = "LOG", bool includeFileInfo = kIncludeFileInfo, bool includeTimestamp = kIncludeTimestamp) {
         if (stackJump == -1) stackJump = 3;
         WriteMessage(message, ctx, messageTitle, color, includeFileInfo, includeTimestamp);
     }
@@ -57,7 +57,7 @@ public static class Logger {
 
         Console.ForegroundColor = ConsoleColor.White;
         Console.BackgroundColor = color;
-        Console.Write("[" + messageTitle + $"]{(ctx != null ? $" @ {SerializeUtils.FriendlyName(ctx.GetType())}" : "")}");
+        Console.Write($"[{messageTitle}{(ctx != null ? $" @ {SerializeUtils.FriendlyName(ctx.GetType())}" : "")}]");
         Console.ResetColor();
         Console.ForegroundColor = color;
         Console.Write($" {GetString(message)}");

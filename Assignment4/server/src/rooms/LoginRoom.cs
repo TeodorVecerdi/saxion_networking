@@ -11,9 +11,8 @@ namespace server {
 	 * A connected client that never sends anything will be stuck in here for life,
 	 * unless the client disconnects (that will be detected in due time).
 	 */
-    public class LoginRoom : SimpleRoom {
-        //arbitrary max amount just to demo the concept
-        private const int MAX_MEMBERS = 50;
+    public sealed class LoginRoom : SimpleRoom {
+        protected override RoomType RoomType => RoomType.LOGIN_ROOM;
 
         public LoginRoom(TCPGameServer owner) : base(owner) {
         }
@@ -22,8 +21,7 @@ namespace server {
             base.AddMember(member);
 
             //notify the client that (s)he is now in the login room, clients can wait for that before doing anything else
-            RoomJoinedEvent roomJoinedEvent = new RoomJoinedEvent();
-            roomJoinedEvent.Room = RoomJoinedEvent.RoomType.LOGIN_ROOM;
+            var roomJoinedEvent = new RoomJoinedEvent {Room = RoomType};
             member.SendMessage(roomJoinedEvent);
         }
 
@@ -35,7 +33,7 @@ namespace server {
                 Logger.Error("Declining client, auth request not understood", this);
 
                 //don't provide info back to the member on what it is we expect, just close and remove
-                RemoveAndCloseMember(sender);
+                RemoveAndCloseMember(sender, "Unexpected message");
             }
         }
 
@@ -48,9 +46,9 @@ namespace server {
             if (IsJoinRequestValid(message)) {
                 var playerInfo = Server.GetPlayerInfo(sender);
                 playerInfo.Name = message.Name;
-                sender.SendMessage(new PlayerJoinResponse {Result = PlayerJoinResponse.RequestResult.ACCEPTED, PlayerInfo = playerInfo});
+                sender.SendMessage(new PlayerJoinResponse {Result = PlayerJoinResponse.RequestResult.ACCEPTED, PlayerInfo = playerInfo, ServerTimeout = Server.Timeout});
                 RemoveMember(sender);
-                Server.GetLobbyRoom().AddMember(sender);
+                Server.LobbyRoom.AddMember(sender);
                 return;
             }
 

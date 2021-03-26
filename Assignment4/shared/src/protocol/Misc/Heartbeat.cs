@@ -1,7 +1,7 @@
 ﻿using shared.serialization;
 
 namespace shared.protocol {
-    public class Timeout : Printable {
+    public class Heartbeat : Printable {
         
     }
 }

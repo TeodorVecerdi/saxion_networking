@@ -79,7 +79,7 @@ namespace shared.serialization {
                 return;
             }
 
-            Logger.Colored(message, ConsoleColor.Cyan, this);
+            Logger.Log(message, ConsoleColor.Cyan, this);
             try {
                 //grab the required bytes from either the packet or the cache
                 if (lastSerializedMessage != message) {

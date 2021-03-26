@@ -99,14 +99,16 @@ namespace shared.serialization {
                 return;
             }
 
+            Type unityInterfaceType;
             // Check if UnityEngine serialization callback exists is present
             try {
-                var interfaceType = TypeIdUtils.FindTypeByName("UnityEngine.ISerializationCallbackReceiver", true);
-                Utils.KeepUnusedVariable(ref interfaceType);
+                unityInterfaceType = TypeIdUtils.FindTypeByName("UnityEngine.ISerializationCallbackReceiver", true);
             } catch {
                 // do nothing if not present
                 return;
-            } 
+            }
+
+            if (!unityInterfaceType.IsAssignableFrom(type)) return;
             var unityMethod = type.GetMethod("OnBeforeSerialize");
             Debug.Assert(unityMethod != null);
             unityMethod.Invoke(obj, new object[0]);
@@ -123,13 +125,15 @@ namespace shared.serialization {
             }
 
             // Check if UnityEngine serialization callback exists is present
+            Type unityInterfaceType;
             try {
-                var interfaceType = TypeIdUtils.FindTypeByName("UnityEngine.ISerializationCallbackReceiver", true);
-                Utils.KeepUnusedVariable(ref interfaceType);
+                unityInterfaceType = TypeIdUtils.FindTypeByName("UnityEngine.ISerializationCallbackReceiver", true);
             } catch {
                 // do nothing if not present
                 return;
             }
+            
+            if (!unityInterfaceType.IsAssignableFrom(type)) return;
             var unityMethod = type.GetMethod("OnAfterDeserialize");
             Debug.Assert(unityMethod != null);
             unityMethod.Invoke(obj, new object[0]);

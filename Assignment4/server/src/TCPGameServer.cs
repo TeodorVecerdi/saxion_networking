@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Net.Sockets;
 using System.Net;
-using shared;
 using System.Threading;
 using System.Collections.Generic;
 using System.Linq;
+using shared.log;
 using shared.model;
 using shared.protocol;
 using shared.serialization;
@@ -24,27 +24,39 @@ namespace server {
 	 */
     public class TCPGameServer {
         public static void Main() {
-            new TCPGameServer().Run();
+            LoggerOptions._LOG_SERIALIZATION_WRITE = false;
+            LoggerOptions._LOG_SERIALIZATION_READ = false;
+            new TCPGameServer(5f).Run();
         }
 
         //we have 3 different rooms at the moment (aka simple but limited)
-
         private readonly LoginRoom loginRoom; //this is the room every new user joins
         private readonly LobbyRoom lobbyRoom; //this is the room a user moves to after a successful 'login'
-        private readonly GameRoom gameRoom; //this is the room a user moves to when a game is successfully started
+        private readonly GameResultsRoom gameResultsRoom;
+        private readonly List<GameRoom> gameRooms;
 
         //stores additional info for a player
         private readonly Dictionary<TcpMessageChannel, PlayerInfo> playerInfo = new Dictionary<TcpMessageChannel, PlayerInfo>();
 
-        private TCPGameServer() {
+        private readonly float timeout;
+        public float Timeout => timeout;
+        
+        //provide access to the different rooms on the server 
+        public LoginRoom LoginRoom => loginRoom;
+        public LobbyRoom LobbyRoom => lobbyRoom;
+        public GameResultsRoom GameResultsRoom => gameResultsRoom;
+
+        private TCPGameServer(float timeout) {
+            this.timeout = timeout;
             //we have only one instance of each room, this is especially limiting for the game room (since this means you can only have one game at a time).
             loginRoom = new LoginRoom(this);
             lobbyRoom = new LobbyRoom(this);
-            gameRoom = new GameRoom(this);
+            gameResultsRoom = new GameResultsRoom(this, 60.0f);
+            gameRooms = new List<GameRoom>();
         }
 
         private void Run() {
-            Logger.Colored("Starting server on port 55555", ConsoleColor.Gray, this);
+            Logger.Log("Starting server on port 55555", ConsoleColor.Gray, this);
 
             //start listening for incoming connections (with max 50 in the queue)
             //we allow for a lot of incoming connections, so we can handle them
@@ -56,34 +68,20 @@ namespace server {
                 //check for new members	
                 if (listener.Pending()) {
                     //get the waiting client
-                    Logger.Colored("Accepting new client...", ConsoleColor.White, this);
-                    var client = listener.AcceptTcpClient();
-                    //and wrap the client in an easier to use communication channel
-                    var channel = new TcpMessageChannel(client);
-                    //and add it to the login room for further 'processing'
-                    loginRoom.AddMember(channel);
+                    Logger.Log("Accepting new client...", ConsoleColor.White, this);
+                    
+                    var client = new TcpMessageChannel(listener.AcceptTcpClient());
+                    playerInfo[client] = new PlayerInfo {LastHeartbeat = DateTime.Now};
+                    loginRoom.AddMember(client);
                 }
 
                 //now update every single room
                 loginRoom.Update();
                 lobbyRoom.Update();
-                gameRoom.Update();
+                gameRooms.SafeForEach(room => room.Update());
 
                 Thread.Sleep(50);
             }
-        }
-
-        //provide access to the different rooms on the server 
-        public LoginRoom GetLoginRoom() {
-            return loginRoom;
-        }
-
-        public LobbyRoom GetLobbyRoom() {
-            return lobbyRoom;
-        }
-
-        public GameRoom GetGameRoom() {
-            return gameRoom;
         }
 
         /**
@@ -91,10 +89,6 @@ namespace server {
 		 * (will create new player info if there was no info for the given client yet)
 		 */
         public PlayerInfo GetPlayerInfo(TcpMessageChannel client) {
-            if (!playerInfo.ContainsKey(client)) {
-                playerInfo[client] = new PlayerInfo();
-            }
-
             return playerInfo[client];
         }
 
@@ -113,5 +107,27 @@ namespace server {
         public void RemovePlayerInfo(TcpMessageChannel client) {
             playerInfo.Remove(client);
         }
+
+        public void StartGame(TcpMessageChannel player1, TcpMessageChannel player2) {
+            var newGame = new GameRoom(this, player1, player2);
+            playerInfo[player1].GameRoom = newGame;
+            playerInfo[player2].GameRoom = newGame;
+            gameRooms.Add(newGame);
+            Logger.Info("Created new game room");
+        }
+
+        public void RemoveGameRoom(GameRoom gameRoom) {
+            gameRooms.Remove(gameRoom);
+            Logger.Info("Destroyed finished game room");
+        }
+        public void UpdateHeartbeat(TcpMessageChannel client) {
+            playerInfo[client].LastHeartbeat = DateTime.Now;
+        }
+        public bool IsHeartbeatValid(TcpMessageChannel client) => (DateTime.Now - playerInfo[client].LastHeartbeat).TotalSeconds <= timeout;
+
+        public void UpdateRoomType(TcpMessageChannel client, RoomType newRoom) {
+            playerInfo[client].CurrentRoom = newRoom;
+        }
+        public RoomType GetRoomType(TcpMessageChannel client) => playerInfo[client].CurrentRoom;
     }
 }

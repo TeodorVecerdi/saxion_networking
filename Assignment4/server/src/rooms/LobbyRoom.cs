@@ -10,6 +10,8 @@ namespace server {
 	 * If enough people are ready, they are automatically moved to the GameRoom to play a Game (assuming a game is not already in play).
 	 */
     public class LobbyRoom : SimpleRoom {
+        protected override RoomType RoomType => RoomType.LOBBY_ROOM;
+        
         //this list keeps tracks of which players are ready to play a game, this is a subset of the people in this room
         private readonly List<TcpMessageChannel> readyMembers = new List<TcpMessageChannel>();
 
@@ -20,8 +22,7 @@ namespace server {
             base.AddMember(member);
 
             //tell the member it has joined the lobby
-            RoomJoinedEvent roomJoinedEvent = new RoomJoinedEvent();
-            roomJoinedEvent.Room = RoomJoinedEvent.RoomType.LOBBY_ROOM;
+            var roomJoinedEvent = new RoomJoinedEvent {Room = RoomType};
             member.SendMessage(roomJoinedEvent);
 
             var playerInfo = Server.GetPlayerInfo(member);
@@ -37,11 +38,11 @@ namespace server {
 		 * Override removeMember so that our ready count and lobby count is updated (and sent to all clients)
 		 * anytime we remove a member.
 		 */
-        protected override void RemoveMember(TcpMessageChannel member) {
-            base.RemoveMember(member);
+        protected override bool RemoveMember(TcpMessageChannel member) {
+            if (!base.RemoveMember(member)) return false; 
             readyMembers.Remove(member);
-
             SendLobbyUpdateCount();
+            return true;
         }
 
         protected override void HandleNetworkMessage(object message, TcpMessageChannel sender) {
@@ -59,12 +60,14 @@ namespace server {
             }
 
             //do we have enough people for a game and is there no game running yet?
-            if (readyMembers.Count >= 2 && !Server.GetGameRoom().IsGameInPlay) {
-                TcpMessageChannel player1 = readyMembers[0];
-                TcpMessageChannel player2 = readyMembers[1];
+            if (readyMembers.Count >= 2) {
+                var player1 = readyMembers[0];
+                var player2 = readyMembers[1];
+                
                 RemoveMember(player1);
                 RemoveMember(player2);
-                Server.GetGameRoom().StartGame(player1, player2);
+
+                Server.StartGame(player1, player2);
             }
 
             //(un)ready-ing / starting a game changes the lobby/ready count so send out an update
@@ -82,7 +85,7 @@ namespace server {
 
         private void HandleChatMessage(ChatMessage message, TcpMessageChannel sender) {
             var textMessage = message.Message.Trim();
-            if(string.IsNullOrWhiteSpace(textMessage)) return;
+            if (string.IsNullOrWhiteSpace(textMessage)) return;
             var playerInfo = Server.GetPlayerInfo(sender);
             message.Message = $"<b>{playerInfo.Name}</b>: {textMessage}";
             SendToAll(message);

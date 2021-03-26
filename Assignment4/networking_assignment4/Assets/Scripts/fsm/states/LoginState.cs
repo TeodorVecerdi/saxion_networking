@@ -74,14 +74,14 @@ public class LoginState : ApplicationStateWithView<LoginView> {
         //Dont do anything with this info at the moment, just leave it to the RoomJoinedEvent
         //We could handle duplicate name messages, get player info etc here
         if (message.Result == PlayerJoinResponse.RequestResult.ACCEPTED) {
-            State.Instance.SelfInfo = message.PlayerInfo;
+            State.Instance.Initialize(message.PlayerInfo, message.ServerTimeout, fsm);
         } else if (message.Result == PlayerJoinResponse.RequestResult.CONFLICT) {
             view.TextConnectResults = "Name is already taken. Please choose another one.";
         }
     }
 
     private void HandleRoomJoinedEvent(RoomJoinedEvent message) {
-        if (message.Room == RoomJoinedEvent.RoomType.LOBBY_ROOM) {
+        if (message.Room == RoomType.LOBBY_ROOM) {
             fsm.ChangeState<LobbyState>();
         }
     }

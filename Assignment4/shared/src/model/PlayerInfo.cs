@@ -1,4 +1,6 @@
-﻿using shared.serialization;
+﻿using System;
+using shared.protocol;
+using shared.serialization;
 
 namespace shared.model {
     /**
@@ -8,5 +10,8 @@ namespace shared.model {
     [System.Serializable]
     public class PlayerInfo : Printable {
         [Serialized] public string Name;
+        [NonSerialized] public DateTime LastHeartbeat;
+        [NonSerialized] public RoomType CurrentRoom;
+        [NonSerialized] public object GameRoom;
     }
 }

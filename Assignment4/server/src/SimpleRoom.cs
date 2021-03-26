@@ -8,8 +8,8 @@ namespace server {
         protected SimpleRoom(TCPGameServer server) : base(server) {
         }
 
-        protected internal override void AddMember(TcpMessageChannel pChannel) {
-            base.AddMember(pChannel);
+        protected internal override void AddMember(TcpMessageChannel member) {
+            base.AddMember(member);
         }
     }
 }

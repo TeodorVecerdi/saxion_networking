@@ -77,7 +77,7 @@ public class LobbyState : ApplicationStateWithView<LobbyView> {
 
     private void HandleRoomJoinedEvent(RoomJoinedEvent message) {
         //did we move to the game room?
-        if (message.Room == RoomJoinedEvent.RoomType.GAME_ROOM) {
+        if (message.Room == RoomType.GAME_ROOM) {
             fsm.ChangeState<GameState>();
         }
     }

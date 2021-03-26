@@ -6,12 +6,6 @@ namespace shared.protocol {
 	 */
     [System.Serializable]
     public class RoomJoinedEvent : Printable  {
-        public enum RoomType {
-            LOGIN_ROOM,
-            LOBBY_ROOM,
-            GAME_ROOM
-        };
-
         [Serialized] public RoomType Room;
     }
 }

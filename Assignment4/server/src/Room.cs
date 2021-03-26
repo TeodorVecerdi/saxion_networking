@@ -1,6 +1,7 @@
 ﻿using shared;
 using System;
 using System.Collections.Generic;
+using shared.protocol;
 using shared.serialization;
 
 namespace server {
@@ -19,6 +20,9 @@ namespace server {
         protected TCPGameServer Server { get; }
         //all members of this room (we identify them by their message channel)
         private readonly List<TcpMessageChannel> members;
+        protected List<TcpMessageChannel> Members => members;
+        
+        protected abstract RoomType RoomType { get; }
 
         /**
 		 * Create a room with an empty member list and reference to the server instance they are a part of.
@@ -31,11 +35,12 @@ namespace server {
         protected internal virtual void AddMember(TcpMessageChannel member) {
             Logger.Info("Client joined.", this, "ROOM-INFO");
             members.Add(member);
+            Server.UpdateRoomType(member, RoomType);
         }
 
-        protected virtual void RemoveMember(TcpMessageChannel member) {
+        protected virtual bool RemoveMember(TcpMessageChannel member) {
             Logger.Info("Client left.", this, "ROOM-INFO");
-            members.Remove(member);
+            return members.Remove(member);
         }
 
         protected int MemberCount => members.Count;
@@ -57,57 +62,42 @@ namespace server {
 		 * Return true if any members were removed.
 		 */
         protected void RemoveFaultyMembers() {
-            SafeForEach(CheckFaultyMember);
-        }
-
-        /**
-		* Iterates backwards through all members and calls the given method on each of them.
-		* This basically allows you to process all clients, and optionally remove them 
-		* without weird crashes due to collections being modified.
-		* 
-		* This can happen while looking for faulty clients, or when deciding to move a bunch 
-		* of members to a different room, while you are still processing them.
-		*/
-        protected void SafeForEach(Action<TcpMessageChannel> action) {
-            for (int i = members.Count - 1; i >= 0; i--) {
-                //skip any members that have been 'killed' in the mean time
-                if (i >= members.Count) continue;
-                //call the method on any still existing member
-                action(members[i]);
-            }
+            members.SafeForEach(CheckFaultyMember);
         }
 
         /**
 		 * Check if a member is no longer connected or has issues, if so remove it from the room, and close it's connection.
 		 */
         private void CheckFaultyMember(TcpMessageChannel member) {
-            if (!member.Connected) RemoveAndCloseMember(member);
+            if (!member.Connected) RemoveAndCloseMember(member, "No longer connected");
+            else if (!Server.IsHeartbeatValid(member)) RemoveAndCloseMember(member, "Timeout");
         }
 
         /**
 		 * Removes a member from this room and closes it's connection (basically it is being removed from the server).
 		 */
-        protected void RemoveAndCloseMember(TcpMessageChannel member) {
+        protected void RemoveAndCloseMember(TcpMessageChannel member, string reason) {
             RemoveMember(member);
             Server.RemovePlayerInfo(member);
             member.Close();
 
-            Logger.Info("Removed client at " + member.GetRemoteEndPoint(), this, "ROOM-INFO");
+            Logger.Info($"Removed client at {member.GetRemoteEndPoint()}{(string.IsNullOrEmpty(reason) ? "" : $" [Reason: {reason}]")}", this, "ROOM-INFO");
         }
 
         /**
 		 * Iterate over all members and get their network messages.
 		 */
         protected void ReceiveAndProcessNetworkMessages() {
-            SafeForEach(ReceiveAndProcessNetworkMessagesFromMember);
+            members.SafeForEach(ReceiveAndProcessNetworkMessagesFromMember);
         }
 
         /**
 		 * Get all the messages from a specific member and process them
 		 */
-        private void ReceiveAndProcessNetworkMessagesFromMember(TcpMessageChannel pMember) {
-            while (pMember.HasMessage()) {
-                HandleNetworkMessage(pMember.ReceiveMessage(), pMember);
+        private void ReceiveAndProcessNetworkMessagesFromMember(TcpMessageChannel member) {
+            while (member.HasMessage()) {
+                Server.UpdateHeartbeat(member);
+                HandleNetworkMessage(member.ReceiveMessage(), member);
             }
         }
 
