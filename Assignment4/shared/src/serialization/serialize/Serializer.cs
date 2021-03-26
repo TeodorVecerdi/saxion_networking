@@ -15,18 +15,18 @@ namespace shared.serialization {
 
         internal static byte[] Serialize(object obj, Type type, Packet packet, SerializeMode serializeMode = SerializeMode.Default) {
             if (SerializeUtils.IsTriviallySerializable(type)) {
-                if (Options.LOG_SERIALIZATION) Logger.Info($"[TRIVIAL] Serializing type {SerializeUtils.FriendlyName(type)}", null, "SERIALIZE");
+                if (LoggerOptions.LOG_SERIALIZATION) Logger.Info($"[TRIVIAL] Serializing type {SerializeUtils.FriendlyName(type)}", null, "SERIALIZE");
                 var bytes = SerializeTrivialImpl(obj, type, packet, serializeMode).GetBytes();
-                if (Options.LOG_SERIALIZATION) Logger.Info($"Serialized type {SerializeUtils.FriendlyName(type)} [{bytes.Length} bytes]", null, "SERIALIZE");
+                if (LoggerOptions.LOG_SERIALIZATION) Logger.Info($"Serialized type {SerializeUtils.FriendlyName(type)} [{bytes.Length} bytes]", null, "SERIALIZE");
                 return bytes;
             }
 
             BeforeSerializeCallback(obj, type);
 
             if (!HasSerializationModel(type, serializeMode)) BuildSerializationModel(type, serializeMode);
-            if (Options.LOG_SERIALIZATION) Logger.Info($"Serializing type {SerializeUtils.FriendlyName(type)}", null, "SERIALIZE");
+            if (LoggerOptions.LOG_SERIALIZATION) Logger.Info($"Serializing type {SerializeUtils.FriendlyName(type)}", null, "SERIALIZE");
             var bytes2 = SerializeImpl(obj, type, packet, serializeMode).GetBytes();
-            if (Options.LOG_SERIALIZATION) Logger.Info($"Serialized type {SerializeUtils.FriendlyName(type)} [{bytes2.Length} bytes]", null, "SERIALIZE");
+            if (LoggerOptions.LOG_SERIALIZATION) Logger.Info($"Serialized type {SerializeUtils.FriendlyName(type)} [{bytes2.Length} bytes]", null, "SERIALIZE");
             return bytes2;
         }
 
@@ -34,7 +34,7 @@ namespace shared.serialization {
             var typeId = type.ID();
             packet.WriteTypeId(typeId);
             packet.Write(serializeMode, SerializeMode.Default);
-            if (Options.LOG_SERIALIZATION) Logger.Info($"Serialized SerializeMode[{serializeMode}]", null, "SERIALIZE");
+            if (LoggerOptions.LOG_SERIALIZATION) Logger.Info($"Serialized SerializeMode[{serializeMode}]", null, "SERIALIZE");
 
             var model = serializationModel[new SerializationModelKey(typeId, serializeMode)];
             foreach (var field in model.Fields) {
@@ -48,7 +48,7 @@ namespace shared.serialization {
             var typeId = type.ID();
             packet.WriteTypeId(typeId);
             packet.Write(serializeMode, SerializeMode.Default);
-            if (Options.LOG_SERIALIZATION) Logger.Info($"Serialized SerializeMode[{serializeMode}]", null, "SERIALIZE");
+            if (LoggerOptions.LOG_SERIALIZATION) Logger.Info($"Serialized SerializeMode[{serializeMode}]", null, "SERIALIZE");
             packet.Write(type, obj, serializeMode);
             return packet;
         }
@@ -59,17 +59,17 @@ namespace shared.serialization {
         internal static object Deserialize(Packet packet) {
             var typeId = packet.ReadTypeId();
             var serializeMode = packet.Read<SerializeMode>(SerializeMode.Default);
-            if (Options.LOG_SERIALIZATION) Logger.Info($"Read SerializeMode[{serializeMode}]", null, "SERIALIZE");
+            if (LoggerOptions.LOG_SERIALIZATION) Logger.Info($"Read SerializeMode[{serializeMode}]", null, "SERIALIZE");
             var type = typeId.Type;
             if (SerializeUtils.IsTriviallySerializable(type)) {
-                if (Options.LOG_SERIALIZATION) Logger.Info($"[TRIVIAL] Deserializing type {SerializeUtils.FriendlyName(type)}", null, "SERIALIZE");
+                if (LoggerOptions.LOG_SERIALIZATION) Logger.Info($"[TRIVIAL] Deserializing type {SerializeUtils.FriendlyName(type)}", null, "SERIALIZE");
                 var objTrivial = DeserializeTrivialImpl(packet, type, serializeMode);
                 AfterDeserializeCallback(objTrivial, type);
                 return objTrivial;
             }
 
             if (!HasSerializationModel(type, serializeMode)) BuildSerializationModel(type, serializeMode);
-            if (Options.LOG_SERIALIZATION) Logger.Info($"Deserializing type {SerializeUtils.FriendlyName(type)}", null, "SERIALIZE");
+            if (LoggerOptions.LOG_SERIALIZATION) Logger.Info($"Deserializing type {SerializeUtils.FriendlyName(type)}", null, "SERIALIZE");
             var obj = DeserializeImpl(packet, type, serializeMode);
             AfterDeserializeCallback(obj, type);
             return obj;
@@ -95,7 +95,7 @@ namespace shared.serialization {
                 var method = type.GetMethod("OnBeforeSerialize");
                 Debug.Assert(method != null);
                 method.Invoke(obj, new object[0]);
-                if (Options.LOG_SERIALIZATION) Logger.Info($"OnBeforeSerialize callback called for {SerializeUtils.FriendlyName(type)}", null, "SERIALIZE");
+                if (LoggerOptions.LOG_SERIALIZATION) Logger.Info($"OnBeforeSerialize callback called for {SerializeUtils.FriendlyName(type)}", null, "SERIALIZE");
                 return;
             }
 
@@ -110,7 +110,7 @@ namespace shared.serialization {
             var unityMethod = type.GetMethod("OnBeforeSerialize");
             Debug.Assert(unityMethod != null);
             unityMethod.Invoke(obj, new object[0]);
-            if (Options.LOG_SERIALIZATION) Logger.Info($"OnBeforeSerialize callback called for {SerializeUtils.FriendlyName(type)}", null, "SERIALIZE");
+            if (LoggerOptions.LOG_SERIALIZATION) Logger.Info($"OnBeforeSerialize callback called for {SerializeUtils.FriendlyName(type)}", null, "SERIALIZE");
         }
 
         private static void AfterDeserializeCallback(object obj, Type type) {
@@ -118,7 +118,7 @@ namespace shared.serialization {
                 var method = type.GetMethod("OnAfterDeserialize");
                 Debug.Assert(method != null);
                 method.Invoke(obj, new object[0]);
-                if (Options.LOG_SERIALIZATION) Logger.Info($"OnAfterDeserialize callback called for {SerializeUtils.FriendlyName(type)}", null, "SERIALIZE");
+                if (LoggerOptions.LOG_SERIALIZATION) Logger.Info($"OnAfterDeserialize callback called for {SerializeUtils.FriendlyName(type)}", null, "SERIALIZE");
                 return;
             }
 
@@ -133,7 +133,7 @@ namespace shared.serialization {
             var unityMethod = type.GetMethod("OnAfterDeserialize");
             Debug.Assert(unityMethod != null);
             unityMethod.Invoke(obj, new object[0]);
-            if (Options.LOG_SERIALIZATION) Logger.Info($"OnAfterDeserialize callback called for {SerializeUtils.FriendlyName(type)}", null, "SERIALIZE");
+            if (LoggerOptions.LOG_SERIALIZATION) Logger.Info($"OnAfterDeserialize callback called for {SerializeUtils.FriendlyName(type)}", null, "SERIALIZE");
         }
 
         internal static void BuildSerializationModel(Type type, SerializeMode serializeMode) {

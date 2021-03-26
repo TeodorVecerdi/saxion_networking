@@ -36,7 +36,7 @@ namespace shared.serialization {
 
         public void Write(Type type, object obj, SerializeMode serializeMode) {
             var size = GetSize(type, obj);
-            if (Options.LOG_SERIALIZATION_WRITE)
+            if (LoggerOptions.LOG_SERIALIZATION_WRITE)
                 Logger.Info($"Writing type {SerializeUtils.FriendlyName(type)} [{(size == -1 ? "Unknown" : size.ToString())} bytes]", null, "SERIALIZE-WRITE");
             if (type == typeof(bool)) writer.Write((bool) obj);
             else if (type == typeof(byte)) writer.Write((byte) obj);
@@ -72,7 +72,7 @@ namespace shared.serialization {
         }
 
         public object Read(Type type, SerializeMode serializeMode) {
-            if (Options.LOG_SERIALIZATION_READ) Logger.Info($"Reading type {SerializeUtils.FriendlyName(type)}", null, "SERIALIZE-READ");
+            if (LoggerOptions.LOG_SERIALIZATION_READ) Logger.Info($"Reading type {SerializeUtils.FriendlyName(type)}", null, "SERIALIZE-READ");
             if (type == typeof(bool)) return reader.ReadBoolean();
             if (type == typeof(byte)) return reader.ReadByte();
             if (type == typeof(float)) return reader.ReadSingle();
@@ -185,14 +185,14 @@ namespace shared.serialization {
         public void WriteTypeId(TypeId typeId) {
             var type = typeId.Type;
             if (!type.IsGenericType) {
-                if (Options.LOG_SERIALIZATION_WRITE)
+                if (LoggerOptions.LOG_SERIALIZATION_WRITE)
                     Logger.Info($"Writing TypeId of {SerializeUtils.FriendlyName(typeId.Type)} [{sizeof(char) * typeId.ID.Length} bytes]", null, "SERIALIZE-WRITE");
                 Write(typeId.ID, SerializeMode.Default);
                 return;
             }
 
             var typeDef = TypeIdUtils.Get(type.GetGenericTypeDefinition());
-            if (Options.LOG_SERIALIZATION_WRITE)
+            if (LoggerOptions.LOG_SERIALIZATION_WRITE)
                 Logger.Info($"Writing TypeId of {SerializeUtils.FriendlyName(typeDef.Type)} [{sizeof(char) * typeDef.ID.Length} bytes]", null, "SERIALIZE-WRITE");
             Write(typeDef.ID, SerializeMode.Default);
             var genericArguments = type.GetGenericArguments();
@@ -203,7 +203,7 @@ namespace shared.serialization {
 
         public TypeId ReadTypeId() {
             var type = TypeIdUtils.FindTypeByName(Read<string>(SerializeMode.Default));
-            if (Options.LOG_SERIALIZATION_READ) Logger.Info($"Reading TypeId of {SerializeUtils.FriendlyName(type)}", null, "SERIALIZE-READ");
+            if (LoggerOptions.LOG_SERIALIZATION_READ) Logger.Info($"Reading TypeId of {SerializeUtils.FriendlyName(type)}", null, "SERIALIZE-READ");
             if (!type.IsGenericTypeDefinition) return TypeIdUtils.Get(type);
 
             var genericArguments = new List<TypeId>();

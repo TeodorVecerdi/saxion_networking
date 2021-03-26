@@ -7,7 +7,6 @@ namespace shared.serialization {
 
         internal TypeId GetCached(TypeId typeId) {
             if (!Contains(typeId, out var hash)) {
-                
                 cache[hash] = typeId;
             }
             return cache[hash];
