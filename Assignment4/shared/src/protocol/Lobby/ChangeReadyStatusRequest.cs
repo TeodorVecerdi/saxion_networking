@@ -7,6 +7,6 @@ namespace shared.protocol {
      */
     [Serializable]
     public class ChangeReadyStatusRequest : ASerializable {
-        [Serialize] public bool Ready;
+        [Serialized] public bool Ready;
     }
 }

@@ -7,7 +7,7 @@ namespace shared.protocol {
      */
     [System.Serializable]
     public class GameStarted : ASerializable {
-        [Serialize] public int Order;
-        [Serialize] public string OtherPlayerName;
+        [Serialized] public int Order;
+        [Serialized] public string OtherPlayerName;
     }
 }

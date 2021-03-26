@@ -12,6 +12,6 @@ namespace shared.protocol {
             GAME_ROOM
         };
 
-        [Serialize] public RoomType Room;
+        [Serialized] public RoomType Room;
     }
 }

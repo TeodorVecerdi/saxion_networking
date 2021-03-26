@@ -11,7 +11,7 @@ namespace shared.model {
         //board representation in 1d array, one element for each cell
         //0 is empty, 1 is player 1, 2 is player 2
         //might be that for your game, a 2d array is actually better
-        [Serialize] public readonly int[] Board = {0, 0, 0, 0, 0, 0, 0, 0, 0};
+        [Serialized] public readonly int[] Board = {0, 0, 0, 0, 0, 0, 0, 0, 0};
 
         /**
 		 * Returns who has won.

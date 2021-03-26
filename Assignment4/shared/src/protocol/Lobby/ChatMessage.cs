@@ -6,6 +6,6 @@ namespace shared.protocol {
 	 */
     [System.Serializable]
     public class ChatMessage : ASerializable {
-        [Serialize] public string Message;
+        [Serialized] public string Message;
     }
 }

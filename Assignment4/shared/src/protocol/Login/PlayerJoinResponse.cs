@@ -10,7 +10,7 @@ namespace shared.protocol
     public class PlayerJoinResponse
     {
         public enum RequestResult { ACCEPTED, CONFLICT } //can add different result states if you want
-        [Serialize] public RequestResult Result;
-        [Serialize] public PlayerInfo PlayerInfo;
+        [Serialized] public RequestResult Result;
+        [Serialized] public PlayerInfo PlayerInfo;
     }
 }

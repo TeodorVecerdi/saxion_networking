@@ -7,6 +7,6 @@ namespace shared.protocol {
      */
     [System.Serializable]
     public class MakeMoveRequest : ASerializable {
-        [Serialize] public int Move;
+        [Serialized] public int Move;
     }
 }

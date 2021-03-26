@@ -7,6 +7,6 @@ namespace shared.model {
      */
     [System.Serializable]
     public class PlayerInfo : ASerializable {
-        [Serialize] public string Name;
+        [Serialized] public string Name;
     }
 }

@@ -7,7 +7,7 @@ namespace shared.protocol {
 	 */
     [System.Serializable]
     public class LobbyInfoUpdate : ASerializable {
-        [Serialize] public int MemberCount;
-        [Serialize] public int ReadyCount;
+        [Serialized] public int MemberCount;
+        [Serialized] public int ReadyCount;
     }
 }

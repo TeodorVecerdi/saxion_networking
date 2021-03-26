@@ -6,6 +6,6 @@ namespace shared.protocol {
      */
     [System.Serializable]
     public class PlayerJoinRequest : ASerializable {
-        [Serialize] public string Name;
+        [Serialized] public string Name;
     }
 }

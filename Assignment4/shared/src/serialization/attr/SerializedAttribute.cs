@@ -2,7 +2,7 @@
 
 namespace shared.serialization {
     [AttributeUsage(AttributeTargets.Field)]
-    public class SerializeAttribute : Attribute {
+    public class SerializedAttribute : Attribute {
         
     }
 }

@@ -7,8 +7,8 @@ namespace shared {
      */
     [System.Serializable]
     public class MakeMoveResult : ASerializable {
-        [Serialize] public int Player;
-        [Serialize] public int NextTurn;
-        [Serialize] public TicTacToeBoardData BoardData;
+        [Serialized] public int Player;
+        [Serialized] public int NextTurn;
+        [Serialized] public TicTacToeBoardData BoardData;
     }
 }
