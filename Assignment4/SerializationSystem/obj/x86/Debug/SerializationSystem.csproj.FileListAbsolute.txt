@@ -1,6 +1,0 @@
-C:\dev\saxion\unity\networking\Assignment4\SerializationSystem\bin\Debug\SerializationSystem.dll
-C:\dev\saxion\unity\networking\Assignment4\SerializationSystem\bin\Debug\SerializationSystem.pdb
-C:\dev\saxion\unity\networking\Assignment4\SerializationSystem\obj\x86\Debug\SerializationSystem.csprojAssemblyReference.cache
-C:\dev\saxion\unity\networking\Assignment4\SerializationSystem\obj\x86\Debug\SerializationSystem.csproj.CoreCompileInputs.cache
-C:\dev\saxion\unity\networking\Assignment4\SerializationSystem\obj\x86\Debug\SerializationSystem.dll
-C:\dev\saxion\unity\networking\Assignment4\SerializationSystem\obj\x86\Debug\SerializationSystem.pdb

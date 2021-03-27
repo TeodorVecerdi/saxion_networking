@@ -169,3 +169,7 @@ Assignment4/networking_assignment4/Assets/shared/shared.dll
 Assignment4/networking_assignment4/Assets/shared/SerializationSystem.dll
 
 Assignment4/networking_assignment4/Assets/shared/SerializationSystem.dll.meta
+
+Assignment4/SerializationSystem/bin/
+
+Assignment4/SerializationSystem/obj/
