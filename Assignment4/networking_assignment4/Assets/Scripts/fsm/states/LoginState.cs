@@ -67,13 +67,14 @@ public class LoginState : ApplicationStateWithView<LoginView> {
     protected override void HandleNetworkMessage(object message) {
         if (message is PlayerJoinResponse playerJoinResponse) HandlePlayerJoinResponse(playerJoinResponse);
         else if (message is RoomJoinedEvent roomJoinedEvent) HandleRoomJoinedEvent(roomJoinedEvent);
+        else if (message is ServerTimeout serverTimeout) State.Instance.InitializeHeartbeat(serverTimeout.Timeout);
     }
 
     private void HandlePlayerJoinResponse(PlayerJoinResponse message) {
         //Dont do anything with this info at the moment, just leave it to the RoomJoinedEvent
         //We could handle duplicate name messages, get player info etc here
         if (message.Result == PlayerJoinResponse.RequestResult.ACCEPTED) {
-            State.Instance.Initialize(message.PlayerInfo, message.ServerTimeout, fsm);
+            State.Instance.Initialize(message.PlayerInfo, fsm);
         } else if (message.Result == PlayerJoinResponse.RequestResult.CONFLICT) {
             view.TextConnectResults = "Name is already taken. Please choose another one.";
         }

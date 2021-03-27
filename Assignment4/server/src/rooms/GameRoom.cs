@@ -18,7 +18,6 @@ namespace server {
         protected override RoomType RoomType => RoomType.GAME_ROOM;
 
         private int currentTurn;
-        private int playerIdTurnOffset;
         private bool isGameActive;
 
         //wraps the board to play on...
@@ -29,6 +28,13 @@ namespace server {
         public GameRoom(TCPGameServer owner, TcpMessageChannel player1, TcpMessageChannel player2) : base(owner) {
             this.player1 = player1;
             this.player2 = player2;
+            
+            // Swap players
+            if (Rand.Bool) {
+                this.player1 = player2;
+                this.player2 = player1;
+            }
+            
             StartGame();
         }
 
@@ -41,15 +47,11 @@ namespace server {
             var player1Info = Server.GetPlayerInfo(player1);
             var player2Info = Server.GetPlayerInfo(player2);
 
-            playerIdTurnOffset = Rand.Bool ? 0 : 1;
-            player1.SendMessage(new GameStarted {Order = playerIdTurnOffset, OtherPlayerName = player2Info.Name});
-            player2.SendMessage(new GameStarted {Order = 1-playerIdTurnOffset, OtherPlayerName = player1Info.Name});
+            player1.SendMessage(new GameStarted {Order = 0, OtherPlayerName = player2Info.Name});
+            player2.SendMessage(new GameStarted {Order = 1, OtherPlayerName = player1Info.Name});
         }
         
         private void FinishGame() {
-            Server.GetPlayerInfo(player1).GameRoom = null;
-            Server.GetPlayerInfo(player2).GameRoom = null;
-
             isGameActive = false;
             if (RemoveMember(player1)) {
                 Server.GameResultsRoom.AddMember(player1);
@@ -70,7 +72,7 @@ namespace server {
             member.SendMessage(roomJoinedEvent);
         }
 
-        protected override bool RemoveMember(TcpMessageChannel member) {
+        protected internal override bool RemoveMember(TcpMessageChannel member) {
             if (!base.RemoveMember(member)) return false;
             if (!isGameActive) return true;
             
@@ -83,9 +85,10 @@ namespace server {
             var tie = member == null;
             var winnerName = (string)null;
             var winnerID = -1;
+            
             if (!tie) {
                 winnerName = Server.GetPlayerInfo(member).Name;
-                winnerID = member == player1 ? playerIdTurnOffset : 1 - playerIdTurnOffset;
+                winnerID = member == player1 ? 0 : 1;
             }
 
             var gameResults = new GameResults {IsTie = tie, WinnerName = winnerName, WinnerID = winnerID};
@@ -106,21 +109,31 @@ namespace server {
 
         protected override void HandleNetworkMessage(object message, TcpMessageChannel sender) {
             if (message is MakeMoveRequest makeMoveRequest) HandleMakeMoveRequest(makeMoveRequest, sender);
-            else if (message is LeaveGameRequest) {
-                RemoveMember(sender);
-                Server.LobbyRoom.AddMember(sender);
+            
+            else if (message is LeaveRoomRequest leaveRoomRequest) {
+                if (leaveRoomRequest.Room == RoomType) {
+                    if (RemoveMember(sender)) 
+                        Server.LobbyRoom.AddMember(sender);
+                } else RemoveAndCloseMember(sender, $"Unexpected request: Leave room {leaveRoomRequest.Room} when in room {RoomType}");
             }
         }
 
         private void HandleMakeMoveRequest(MakeMoveRequest message, TcpMessageChannel sender) {
             var playerID = IndexOfMember(sender);
-            if ((playerID + playerIdTurnOffset) % 2 != currentTurn) {
-                var turn = (playerID + playerIdTurnOffset) % 2;
-                Log.Error($"Player with id {playerID} and turnIndex {turn} attempted to make a move when turn was {currentTurn}", this, "WARNING");
+            var currentTurnPlayer = sender == player1 ? 0 : 1;
+            if (currentTurnPlayer != currentTurn) {
+                Log.Error($"Player with id {currentTurnPlayer} attempted to make a move when turn was {currentTurn}", this, "WARNING");
                 return;
             }
             
             board.MakeMove(message.Move, playerID+1);
+            
+            var winner = board.GetWinner();
+            if (winner != -1) {
+                DeclareWinner(winner == 0 ? null : winner == 1 ? player1 : player2);
+                return;
+            }
+            
             currentTurn = 1 - playerID; // next player 
 
             //and send the result of the board state back to all clients

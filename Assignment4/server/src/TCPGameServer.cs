@@ -40,7 +40,7 @@ namespace server {
 
         private readonly float timeout;
         public float Timeout => timeout;
-        
+
         //provide access to the different rooms on the server 
         public LoginRoom LoginRoom => loginRoom;
         public LobbyRoom LobbyRoom => lobbyRoom;
@@ -69,16 +69,23 @@ namespace server {
                 if (listener.Pending()) {
                     //get the waiting client
                     Log.Message("Accepting new client...", this, ConsoleColor.White);
-                    
+
                     var client = new TcpMessageChannel(listener.AcceptTcpClient());
                     playerInfo[client] = new PlayerInfo {LastHeartbeat = DateTime.Now};
+                    client.SendMessage(new ServerTimeout {Timeout = timeout});
                     loginRoom.AddMember(client);
                 }
 
                 //now update every single room
                 loginRoom.Update();
                 lobbyRoom.Update();
+                gameResultsRoom.Update();
                 gameRooms.SafeForEach(room => room.Update());
+                
+                // Remove timeout users again in case some weird stuff happened and a client isn't in any room  
+                foreach (var client in playerInfo.Keys.Where(client => !IsHeartbeatValid(client)).ToList()) {
+                    RemoveClient(client, "Timeout");
+                }
 
                 Thread.Sleep(50);
             }
@@ -108,10 +115,18 @@ namespace server {
             playerInfo.Remove(client);
         }
 
+        private void RemoveClient(TcpMessageChannel client, string reason) {
+            loginRoom.RemoveMember(client);
+            lobbyRoom.RemoveMember(client);
+            gameResultsRoom.RemoveMember(client);
+            gameRooms.ForEach(room => room.RemoveMember(client));
+            RemovePlayerInfo(client);
+            client.Close();
+            Log.Info($"Removed client at {client.GetRemoteEndPoint()}{(string.IsNullOrEmpty(reason) ? "" : $" [Reason: {reason}]")}", this, "ROOM-INFO");
+        }
+
         public void StartGame(TcpMessageChannel player1, TcpMessageChannel player2) {
             var newGame = new GameRoom(this, player1, player2);
-            playerInfo[player1].GameRoom = newGame;
-            playerInfo[player2].GameRoom = newGame;
             gameRooms.Add(newGame);
             Log.Info("Created new game room");
         }
@@ -120,14 +135,17 @@ namespace server {
             gameRooms.Remove(gameRoom);
             Log.Info("Destroyed finished game room");
         }
+
         public void UpdateHeartbeat(TcpMessageChannel client) {
             playerInfo[client].LastHeartbeat = DateTime.Now;
         }
+
         public bool IsHeartbeatValid(TcpMessageChannel client) => (DateTime.Now - playerInfo[client].LastHeartbeat).TotalSeconds <= timeout;
 
         public void UpdateRoomType(TcpMessageChannel client, RoomType newRoom) {
             playerInfo[client].CurrentRoom = newRoom;
         }
+
         public RoomType GetRoomType(TcpMessageChannel client) => playerInfo[client].CurrentRoom;
     }
 }

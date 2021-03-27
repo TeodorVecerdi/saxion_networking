@@ -44,16 +44,16 @@ namespace server {
         private void HandlePlayerJoinRequest(PlayerJoinRequest message, TcpMessageChannel sender) {
             Log.Info("Moving new client to accepted...", this, "ROOM-INFO");
 
-            if (IsJoinRequestValid(message)) {
-                var playerInfo = Server.GetPlayerInfo(sender);
-                playerInfo.Name = message.Name;
-                sender.SendMessage(new PlayerJoinResponse {Result = PlayerJoinResponse.RequestResult.ACCEPTED, PlayerInfo = playerInfo, ServerTimeout = Server.Timeout});
-                RemoveMember(sender);
-                Server.LobbyRoom.AddMember(sender);
+            if (!IsJoinRequestValid(message)) {
+                sender.SendMessage(new PlayerJoinResponse {Result = PlayerJoinResponse.RequestResult.CONFLICT, PlayerInfo = null});
                 return;
             }
-
-            sender.SendMessage(new PlayerJoinResponse {Result = PlayerJoinResponse.RequestResult.CONFLICT, PlayerInfo = null});
+            
+            var playerInfo = Server.GetPlayerInfo(sender);
+            playerInfo.Name = message.Name;
+            sender.SendMessage(new PlayerJoinResponse {Result = PlayerJoinResponse.RequestResult.ACCEPTED, PlayerInfo = playerInfo});
+            RemoveMember(sender);
+            Server.LobbyRoom.AddMember(sender);
         }
 
         private bool IsJoinRequestValid(PlayerJoinRequest request) {

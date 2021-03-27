@@ -22,7 +22,7 @@ namespace server {
         //all members of this room (we identify them by their message channel)
         private readonly List<TcpMessageChannel> members;
         protected List<TcpMessageChannel> Members => members;
-        
+
         protected abstract RoomType RoomType { get; }
 
         /**
@@ -39,9 +39,10 @@ namespace server {
             Server.UpdateRoomType(member, RoomType);
         }
 
-        protected virtual bool RemoveMember(TcpMessageChannel member) {
-            Log.Info("Client left.", this, "ROOM-INFO");
-            return members.Remove(member);
+        protected internal virtual bool RemoveMember(TcpMessageChannel member) {
+            var removed = members.Remove(member);
+            if(removed) Log.Info("Client left.", this, "ROOM-INFO");
+            return removed;
         }
 
         protected int MemberCount => members.Count;
@@ -78,7 +79,8 @@ namespace server {
 		 * Removes a member from this room and closes it's connection (basically it is being removed from the server).
 		 */
         protected void RemoveAndCloseMember(TcpMessageChannel member, string reason) {
-            RemoveMember(member);
+            if (!RemoveMember(member)) return;
+            
             Server.RemovePlayerInfo(member);
             member.Close();
 
@@ -109,7 +111,7 @@ namespace server {
 		 */
         protected void SendToAll(object message, TcpMessageChannel except = null) {
             foreach (var member in members) {
-                if(member == except) continue;
+                if (member == except) continue;
                 member.SendMessage(message);
             }
         }

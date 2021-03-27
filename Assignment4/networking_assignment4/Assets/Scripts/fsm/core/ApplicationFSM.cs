@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using SerializationSystem.Logging;
 using shared.net;
 using UnityEngine;
 
@@ -46,7 +47,8 @@ public class ApplicationFSM : MonoBehaviour {
     protected void Awake() {
         //make sure all Console.WriteLines end up in the Unity console as well.
         UnitySystemConsoleRedirector.Redirect();
-
+        LogOptions.LogSerialization = false;
+        
         channel = new TcpMessageChannel();
 
         Debug.Log("Initializing FSM:" + this);

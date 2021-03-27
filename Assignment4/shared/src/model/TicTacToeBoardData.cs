@@ -1,4 +1,5 @@
-﻿using SerializationSystem;
+﻿using System;
+using SerializationSystem;
 
 namespace shared.model {
     /**
@@ -33,6 +34,17 @@ namespace shared.model {
 
         public override string ToString() {
             return GetType().Name + ":" + string.Join(",", Board);
+        }
+
+        public int this[int idx] {
+	        get {
+		        if (idx < 0 || idx >= 9) throw new IndexOutOfRangeException($"TicTacToe board index {idx} out of range [0,8]");
+		        return Board[idx];
+	        }
+	        set {
+		        if (idx < 0 || idx >= 9) throw new IndexOutOfRangeException($"TicTacToe board index {idx} out of range [0,8]");
+		        Board[idx] = value;
+	        }
         }
     }
 }

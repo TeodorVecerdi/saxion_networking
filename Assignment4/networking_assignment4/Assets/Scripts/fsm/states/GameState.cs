@@ -1,4 +1,5 @@
 ﻿using shared;
+using shared.model;
 using shared.protocol;
 
 /**
@@ -6,19 +7,24 @@ using shared.protocol;
  */
 public class GameState : ApplicationStateWithView<GameView> {
     private bool receivedGameStarted;
-    private int playerOrder;
+    private int selfId;
     private int currentOrder;
     private string otherPlayerName;
 
     public override void EnterState() {
         base.EnterState();
-        view.playerLabel1.text = "Waiting...";
-        view.playerLabel2.text = "Waiting...";
-        view.gameBoard.OnCellClicked += OnCellClicked;
+        view.PlayerLabel1.text = "Waiting for server...";
+        view.PlayerLabel2.text = "";
+        
+        view.GameBoard.SetBoardData(new TicTacToeBoardData()); // reset board
+        view.GameBoard.OnCellClicked += OnCellClicked;
+        view.LeaveButton.onClick.AddListener(() => {
+            fsm.channel.SendMessage(new LeaveRoomRequest{Room = RoomType.GAME_ROOM});
+        });
     }
 
     private void OnCellClicked(int cellIndex) {
-        if (!receivedGameStarted || playerOrder != currentOrder) return;
+        if (!receivedGameStarted || selfId != currentOrder) return;
 
         var makeMoveRequest = new MakeMoveRequest {Move = cellIndex};
         fsm.channel.SendMessage(makeMoveRequest);
@@ -27,7 +33,8 @@ public class GameState : ApplicationStateWithView<GameView> {
     public override void ExitState() {
         base.ExitState();
         receivedGameStarted = false;
-        view.gameBoard.OnCellClicked -= OnCellClicked;
+        view.GameBoard.OnCellClicked -= OnCellClicked;
+        view.LeaveButton.onClick.RemoveAllListeners();
     }
 
     private void Update() {
@@ -37,17 +44,25 @@ public class GameState : ApplicationStateWithView<GameView> {
     protected override void HandleNetworkMessage(object message) {
         if (message is MakeMoveResult makeMoveResult) HandleMakeMoveResult(makeMoveResult);
         else if (message is GameStarted gameStarted) HandleGameStarted(gameStarted);
+        else if (message is GameResults gameResults) State.Instance.UpdateGameResults(selfId, gameResults);
+        else if (message is RoomJoinedEvent roomJoinedEvent) {
+            if (roomJoinedEvent.Room == RoomType.GAME_RESULTS_ROOM) {
+                fsm.ChangeState<GameResultsState>();
+            } else if (roomJoinedEvent.Room == RoomType.LOBBY_ROOM) {
+                fsm.ChangeState<LobbyState>();
+            }
+        }
     }
 
     private void HandleMakeMoveResult(MakeMoveResult makeMoveResult) {
-        view.gameBoard.SetBoardData(makeMoveResult.BoardData);
+        view.GameBoard.SetBoardData(makeMoveResult.BoardData);
         currentOrder = makeMoveResult.NextTurn;
 
         UpdateLabels();
     }
 
     private void HandleGameStarted(GameStarted gameStarted) {
-        playerOrder = gameStarted.Order;
+        selfId = gameStarted.Order;
         currentOrder = 0;
         otherPlayerName = gameStarted.OtherPlayerName;
         receivedGameStarted = true;
@@ -56,13 +71,13 @@ public class GameState : ApplicationStateWithView<GameView> {
     }
 
     private void UpdateLabels() {
-        var selfLabel = playerOrder == 0 ? view.playerLabel1 : view.playerLabel2;
-        var otherLabel = playerOrder == 0 ? view.playerLabel2 : view.playerLabel1;
-        if (currentOrder == playerOrder) {
-            selfLabel.text = $"<b>{State.Instance.SelfInfo.Name}</b>";
+        var selfLabel = selfId == 0 ? view.PlayerLabel1 : view.PlayerLabel2;
+        var otherLabel = selfId == 0 ? view.PlayerLabel2 : view.PlayerLabel1;
+        if (currentOrder == selfId) {
+            selfLabel.text = $"<b>{State.Instance.SelfInfo.Name} (You)</b>";
             otherLabel.text = $"{otherPlayerName}";
         } else {
-            selfLabel.text = $"{State.Instance.SelfInfo.Name}";
+            selfLabel.text = $"{State.Instance.SelfInfo.Name} (You)";
             otherLabel.text = $"<b>{otherPlayerName}</b>";
         }
     }

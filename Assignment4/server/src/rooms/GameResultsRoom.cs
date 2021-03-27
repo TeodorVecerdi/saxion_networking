@@ -1,5 +1,4 @@
-﻿using shared;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using shared.net;
 using shared.protocol;
@@ -23,12 +22,14 @@ namespace server {
             member.SendMessage(new RoomJoinedEvent {Room = RoomType});
         }
 
-        protected override bool RemoveMember(TcpMessageChannel member) {
+        protected internal override bool RemoveMember(TcpMessageChannel member) {
             joinTime.Remove(member);
             return base.RemoveMember(member);
         }
 
         public override void Update() {
+            base.Update();
+            
             var now = DateTime.Now;
             Members.SafeForEach(member => {
                 if ((now - joinTime[member]).TotalSeconds < timeout) return;
@@ -37,8 +38,9 @@ namespace server {
         }
 
         private void MoveToLobby(TcpMessageChannel member) {
-            RemoveMember(member);
-            Server.LobbyRoom.AddMember(member);
+            if (RemoveMember(member)) {
+                Server.LobbyRoom.AddMember(member);
+            }
         }
 
         protected override void HandleNetworkMessage(object message, TcpMessageChannel sender) {

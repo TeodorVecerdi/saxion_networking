@@ -8,8 +8,8 @@ namespace SerializationSystem.Logging {
     public static class Log {
         private const string logFormat = " [{0}.{1} (at {3}:{2})]";
         private const bool kIncludeStackTrace = false;
-        private const bool kIncludeFileInfo = true;
-        private const bool kIncludeTimestamp = false;
+        private const bool kIncludeFileInfo = false;
+        private const bool kIncludeTimestamp = true;
 
         private static int stackJump = -1;
 

@@ -38,7 +38,7 @@ namespace server {
 		 * Override removeMember so that our ready count and lobby count is updated (and sent to all clients)
 		 * anytime we remove a member.
 		 */
-        protected override bool RemoveMember(TcpMessageChannel member) {
+        protected internal override bool RemoveMember(TcpMessageChannel member) {
             if (!base.RemoveMember(member)) return false; 
             readyMembers.Remove(member);
             SendLobbyUpdateCount();
