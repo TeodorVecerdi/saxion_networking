@@ -1,8 +1,9 @@
 ﻿using shared;
 using System;
 using System.Collections.Generic;
+using SerializationSystem.Logging;
+using shared.net;
 using shared.protocol;
-using shared.serialization;
 
 namespace server {
     /**
@@ -33,13 +34,13 @@ namespace server {
         }
 
         protected internal virtual void AddMember(TcpMessageChannel member) {
-            Logger.Info("Client joined.", this, "ROOM-INFO");
+            Log.Info("Client joined.", this, "ROOM-INFO");
             members.Add(member);
             Server.UpdateRoomType(member, RoomType);
         }
 
         protected virtual bool RemoveMember(TcpMessageChannel member) {
-            Logger.Info("Client left.", this, "ROOM-INFO");
+            Log.Info("Client left.", this, "ROOM-INFO");
             return members.Remove(member);
         }
 
@@ -81,7 +82,7 @@ namespace server {
             Server.RemovePlayerInfo(member);
             member.Close();
 
-            Logger.Info($"Removed client at {member.GetRemoteEndPoint()}{(string.IsNullOrEmpty(reason) ? "" : $" [Reason: {reason}]")}", this, "ROOM-INFO");
+            Log.Info($"Removed client at {member.GetRemoteEndPoint()}{(string.IsNullOrEmpty(reason) ? "" : $" [Reason: {reason}]")}", this, "ROOM-INFO");
         }
 
         /**

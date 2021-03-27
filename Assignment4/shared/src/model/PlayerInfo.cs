@@ -1,6 +1,6 @@
 ﻿using System;
+using SerializationSystem;
 using shared.protocol;
-using shared.serialization;
 
 namespace shared.model {
     /**

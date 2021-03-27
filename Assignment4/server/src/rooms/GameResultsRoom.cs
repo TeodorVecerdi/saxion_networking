@@ -1,8 +1,8 @@
 ﻿using shared;
 using System;
 using System.Collections.Generic;
+using shared.net;
 using shared.protocol;
-using shared.serialization;
 
 namespace server {
     public sealed class GameResultsRoom : Room {

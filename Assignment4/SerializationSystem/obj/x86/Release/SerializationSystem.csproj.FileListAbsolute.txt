@@ -1,0 +1,6 @@
+C:\dev\saxion\unity\networking\Assignment4\SerializationSystem\bin\Release\SerializationSystem.dll
+C:\dev\saxion\unity\networking\Assignment4\SerializationSystem\bin\Release\SerializationSystem.pdb
+C:\dev\saxion\unity\networking\Assignment4\SerializationSystem\obj\x86\Release\SerializationSystem.csprojAssemblyReference.cache
+C:\dev\saxion\unity\networking\Assignment4\SerializationSystem\obj\x86\Release\SerializationSystem.csproj.CoreCompileInputs.cache
+C:\dev\saxion\unity\networking\Assignment4\SerializationSystem\obj\x86\Release\SerializationSystem.dll
+C:\dev\saxion\unity\networking\Assignment4\SerializationSystem\obj\x86\Release\SerializationSystem.pdb

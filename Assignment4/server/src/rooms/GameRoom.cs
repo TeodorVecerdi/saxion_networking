@@ -1,7 +1,8 @@
 ﻿using shared;
 using System;
+using SerializationSystem.Logging;
+using shared.net;
 using shared.protocol;
-using shared.serialization;
 
 namespace server {
     /**
@@ -73,7 +74,7 @@ namespace server {
             if (!base.RemoveMember(member)) return false;
             if (!isGameActive) return true;
             
-            Logger.Info("Player left the game while it was running. Declaring other player as winner");
+            Log.Info("Player left the game while it was running. Declaring other player as winner");
             DeclareWinner(member == player1 ? player2 : player1);
             return true;
         }
@@ -99,7 +100,7 @@ namespace server {
             var newMemberCount = MemberCount;
 
             if (oldMemberCount != newMemberCount) {
-                Logger.Info("People left the game...", this, "ROOM-INFO");
+                Log.Info("People left the game...", this, "ROOM-INFO");
             }
         }
 
@@ -115,7 +116,7 @@ namespace server {
             var playerID = IndexOfMember(sender);
             if ((playerID + playerIdTurnOffset) % 2 != currentTurn) {
                 var turn = (playerID + playerIdTurnOffset) % 2;
-                Logger.Error($"Player with id {playerID} and turnIndex {turn} attempted to make a move when turn was {currentTurn}", this, "WARNING");
+                Log.Error($"Player with id {playerID} and turnIndex {turn} attempted to make a move when turn was {currentTurn}", this, "WARNING");
                 return;
             }
             

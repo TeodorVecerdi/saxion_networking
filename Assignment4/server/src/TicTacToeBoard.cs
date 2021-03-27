@@ -1,4 +1,5 @@
-﻿using shared;
+﻿using SerializationSystem.Logging;
+using shared;
 using shared.model;
 
 namespace server {
@@ -28,7 +29,7 @@ namespace server {
             var columns = 3;
             var row = move / columns;
             var column = move % columns;
-            Logger.Info($"Player {player} made a move in cell ({column},{row})", this, "BOARD");
+            Log.Info($"Player {player} made a move in cell ({column},{row})", this, "BOARD");
         }
 
         /**

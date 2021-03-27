@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using shared.serialization;
+using shared.net;
 using UnityEngine;
 
 /**

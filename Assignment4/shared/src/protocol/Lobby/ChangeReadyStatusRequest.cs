@@ -1,5 +1,5 @@
 ﻿using System;
-using shared.serialization;
+using SerializationSystem;
 
 namespace shared.protocol {
     /**

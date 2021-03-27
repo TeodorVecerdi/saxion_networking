@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using SerializationSystem.Logging;
 
 namespace server {
     public static class Rand {
@@ -13,7 +14,7 @@ namespace server {
         public static int Seed {
             set {
                 if (stateStack.Count == 0)
-                    Logger.Error("Modifying the initial rand seed. Call PushState() first. The initial rand seed should always be based on the startup time and set only once.");
+                    Log.Error("Modifying the initial rand seed. Call PushState() first. The initial rand seed should always be based on the startup time and set only once.");
                 provider.Seed = (uint) value;
                 iterations = 0U;
             }
@@ -347,7 +348,7 @@ namespace server {
         public static void EnsureStateStackEmpty() {
             if (stateStack.Count <= 0)
                 return;
-            Logger.Warn("Random state stack is not empty. There were more calls to PushState than PopState. Fixing.");
+            Log.Warn("Random state stack is not empty. There were more calls to PushState than PopState. Fixing.");
             while (stateStack.Any())
                 PopState();
         }

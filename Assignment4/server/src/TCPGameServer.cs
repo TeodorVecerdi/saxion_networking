@@ -4,10 +4,10 @@ using System.Net;
 using System.Threading;
 using System.Collections.Generic;
 using System.Linq;
-using shared.log;
+using SerializationSystem.Logging;
 using shared.model;
+using shared.net;
 using shared.protocol;
-using shared.serialization;
 
 namespace server {
     /**
@@ -24,8 +24,8 @@ namespace server {
 	 */
     public class TCPGameServer {
         public static void Main() {
-            LoggerOptions._LOG_SERIALIZATION_WRITE = false;
-            LoggerOptions._LOG_SERIALIZATION_READ = false;
+            LogOptions.LogSerializationWrite = false;
+            LogOptions.LogSerializationRead = false;
             new TCPGameServer(5f).Run();
         }
 
@@ -56,7 +56,7 @@ namespace server {
         }
 
         private void Run() {
-            Logger.Log("Starting server on port 55555", ConsoleColor.Gray, this);
+            Log.Message("Starting server on port 55555", this);
 
             //start listening for incoming connections (with max 50 in the queue)
             //we allow for a lot of incoming connections, so we can handle them
@@ -68,7 +68,7 @@ namespace server {
                 //check for new members	
                 if (listener.Pending()) {
                     //get the waiting client
-                    Logger.Log("Accepting new client...", ConsoleColor.White, this);
+                    Log.Message("Accepting new client...", this, ConsoleColor.White);
                     
                     var client = new TcpMessageChannel(listener.AcceptTcpClient());
                     playerInfo[client] = new PlayerInfo {LastHeartbeat = DateTime.Now};
@@ -113,12 +113,12 @@ namespace server {
             playerInfo[player1].GameRoom = newGame;
             playerInfo[player2].GameRoom = newGame;
             gameRooms.Add(newGame);
-            Logger.Info("Created new game room");
+            Log.Info("Created new game room");
         }
 
         public void RemoveGameRoom(GameRoom gameRoom) {
             gameRooms.Remove(gameRoom);
-            Logger.Info("Destroyed finished game room");
+            Log.Info("Destroyed finished game room");
         }
         public void UpdateHeartbeat(TcpMessageChannel client) {
             playerInfo[client].LastHeartbeat = DateTime.Now;

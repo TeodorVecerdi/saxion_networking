@@ -1,7 +1,7 @@
 ﻿using shared;
 using System.Collections.Generic;
+using shared.net;
 using shared.protocol;
-using shared.serialization;
 
 namespace server {
     /**

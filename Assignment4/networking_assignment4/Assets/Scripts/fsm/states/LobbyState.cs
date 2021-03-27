@@ -1,7 +1,4 @@
-﻿using shared;
-using shared.protocol;
-using shared.serialization;
-using UnityEditor.VersionControl;
+﻿using shared.protocol;
 using UnityEngine;
 
 /**

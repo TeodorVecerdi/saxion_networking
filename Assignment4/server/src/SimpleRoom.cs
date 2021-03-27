@@ -1,4 +1,4 @@
-﻿using shared.serialization;
+﻿using shared.net;
 
 namespace server {
     /**

@@ -1,5 +1,5 @@
-﻿using shared.model;
-using shared.serialization;
+﻿using SerializationSystem;
+using shared.model;
 
 namespace shared.protocol
 {

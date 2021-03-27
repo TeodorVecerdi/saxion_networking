@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using shared.protocol;
-using shared.serialization;
 using UnityEngine;
 
 /**

@@ -1,6 +1,4 @@
-﻿using shared.serialization;
-
-namespace shared.protocol {
+﻿namespace shared.protocol {
     public class Heartbeat : Printable {
         
     }

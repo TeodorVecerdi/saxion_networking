@@ -1,7 +1,7 @@
-﻿using shared.model;
-using shared.serialization;
+﻿using SerializationSystem;
+using shared.model;
 
-namespace shared {
+namespace shared.protocol {
     /**
      * Send from SERVER to all CLIENTS in response to a client's MakeMoveRequest
      */

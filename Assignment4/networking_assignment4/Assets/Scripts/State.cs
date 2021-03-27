@@ -1,4 +1,5 @@
 ﻿using System;
+using SerializationSystem.Logging;
 using shared.model;
 using shared.protocol;
 using UnityCommons;
@@ -14,7 +15,7 @@ public class State : MonoSingleton<State> {
 
     public void Initialize(PlayerInfo selfInfo, float serverTimeout, ApplicationFSM fsm) {
         if (initialized) {
-            Logger.Warn("Attempting to initialize State when it is already initialized");
+            Log.Warn("Attempting to initialize State when it is already initialized");
             return;
         }
 

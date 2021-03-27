@@ -1,7 +1,8 @@
 ﻿using System.Linq;
+using SerializationSystem.Logging;
 using shared;
+using shared.net;
 using shared.protocol;
-using shared.serialization;
 
 namespace server {
     /**
@@ -30,7 +31,7 @@ namespace server {
                 HandlePlayerJoinRequest(playerJoinRequest, sender);
             } else //if member sends something else than a PlayerJoinRequest
             {
-                Logger.Error("Declining client, auth request not understood", this);
+                Log.Error("Declining client, auth request not understood", this);
 
                 //don't provide info back to the member on what it is we expect, just close and remove
                 RemoveAndCloseMember(sender, "Unexpected message");
@@ -41,7 +42,7 @@ namespace server {
 		 * Tell the client he is accepted and move the client to the lobby room.
 		 */
         private void HandlePlayerJoinRequest(PlayerJoinRequest message, TcpMessageChannel sender) {
-            Logger.Info("Moving new client to accepted...", this, "ROOM-INFO");
+            Log.Info("Moving new client to accepted...", this, "ROOM-INFO");
 
             if (IsJoinRequestValid(message)) {
                 var playerInfo = Server.GetPlayerInfo(sender);
