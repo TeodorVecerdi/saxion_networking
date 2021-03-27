@@ -30,7 +30,15 @@ namespace SerializationSystem {
             return isSerializationResultReplaced ? serializationReplacement : result;
         }
 
-        public static T Deserialize<T>(byte[] data) => (T) Deserialize(data);
+        [Obsolete("Use non-generic Deserialize instead. This method cannot handle deserialization result replacement when an exception occurs.")]
+        public static T Deserialize<T>(byte[] data) {
+            try {
+                return (T) Deserialize(data);
+            } catch (Exception exception) {
+                exceptionHandler.HandleDeserializationException(exception);
+            }
+            return default;
+        }
 
         public static object Deserialize(byte[] data) {
             isSerializationResultReplaced = false;
@@ -46,6 +54,12 @@ namespace SerializationSystem {
             if (isSerializationResultReplaced) return new byte[0];
             try {
                 if (SerializeUtils.IsTriviallySerializable(type)) {
+                    if (type.IsInterface) {
+                        var newType = obj.GetType();
+                        Log.Error($"[TRIVIAL] Replacing interface type {type} with {newType}");
+                        type = newType;
+                    }
+                    
                     if (LogOptions.LOG_SERIALIZATION) Log.Info($"[TRIVIAL] Serializing type {SerializeUtils.FriendlyName(type)}", null, "SERIALIZE");
                     var bytes = SerializeTrivialImpl(obj, type, packet, serializeMode).GetBytes();
                     if (LogOptions.LOG_SERIALIZATION) Log.Info($"Serialized type {SerializeUtils.FriendlyName(type)} [{bytes.Length} bytes]", null, "SERIALIZE");
@@ -77,7 +91,15 @@ namespace SerializationSystem {
 
             var model = serializationModel[new SerializationModelKey(typeId, serializeMode)];
             foreach (var field in model.Fields) {
-                packet.Write(field.GetValue(obj), serializeMode);
+                var fieldType = field.FieldType;
+                var value = field.GetValue(obj);
+                if (fieldType.IsInterface) {
+                    var newType = value.GetType();
+                    Log.Error($"Replacing interface type {fieldType} with {newType}");
+                    fieldType = newType;
+                    packet.WriteTypeId(fieldType.ID());
+                }
+                packet.Write(fieldType, value, serializeMode);
             }
 
             return packet;
@@ -100,6 +122,10 @@ namespace SerializationSystem {
                 if (LogOptions.LOG_SERIALIZATION) Log.Info($"Read SerializeMode[{serializeMode}]", null, "SERIALIZE");
                 var type = typeId.Type;
                 if (SerializeUtils.IsTriviallySerializable(type)) {
+                    if (type.IsInterface) {
+                        Log.Error($"Found interface type when wasn't expecting: {type}");
+                    }
+                    
                     if (LogOptions.LOG_SERIALIZATION) Log.Info($"[TRIVIAL] Deserializing type {SerializeUtils.FriendlyName(type)}", null, "SERIALIZE");
                     var objTrivial = DeserializeTrivialImpl(packet, type, serializeMode);
                     AfterDeserializeCallback(objTrivial, type);
@@ -126,7 +152,13 @@ namespace SerializationSystem {
             var model = serializationModel[new SerializationModelKey(type.ID(), serializeMode)];
             var instance = model.Constructor.Create();
             foreach (var field in model.Fields) {
-                var value = packet.Read(field.FieldType, serializeMode);
+                var fieldType = field.FieldType;
+                if (fieldType.IsInterface) {
+                    var newType = packet.ReadTypeId().Type;
+                    Log.Error($"Replacing interface type {fieldType} with {newType}");
+                    fieldType = newType;
+                }
+                var value = packet.Read(fieldType, serializeMode);
                 field.SetValue(instance, value);
             }
 
@@ -140,13 +172,13 @@ namespace SerializationSystem {
         internal static void ReplaceSerializationResult(byte[] replacement) {
             isSerializationResultReplaced = true;
             serializationReplacement = replacement;
-            if (LogOptions.LOG_SERIALIZATION) Log.Message($"Replaced serialization result with {replacement.Length} bytes", null, messageTitle: "SERIALIZE");
+            if (LogOptions.LOG_SERIALIZATION_REPLACEMENTS) Log.Message($"Replaced serialization result with {replacement.Length} bytes", null, messageTitle: "SERIALIZE");
         }
 
         internal static void ReplaceDeserializationResult(object replacement) {
             isSerializationResultReplaced = true;
             deserializationReplacement = replacement;
-            if (LogOptions.LOG_SERIALIZATION) Log.Message($"Replaced deserialization result with {replacement}", null, messageTitle: "SERIALIZE");
+            if (LogOptions.LOG_SERIALIZATION_REPLACEMENTS) Log.Message($"Replaced deserialization result with {replacement}", null, messageTitle: "SERIALIZE");
         }
 
         private static void BeforeSerializeCallback(object obj, Type type) {

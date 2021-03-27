@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,17 +9,19 @@ using SerializationSystem.Logging;
 namespace SerializationSystem.Internal {
     internal static class SerializeUtils {
         private static readonly ConcurrentDictionary<Type, InstantiateCtor> ctorCache = new ConcurrentDictionary<Type, InstantiateCtor>();
-        
+
         internal static bool HasSerializedAttr(FieldInfo field) => field.GetCustomAttribute<SerializedAttribute>() != null;
         internal static bool HasNonSerializedAttr(FieldInfo field) => field.GetCustomAttribute<NonSerializedAttribute>() != null;
-        internal static bool IsTriviallySerializable(Type type) => BuiltinTypes.Contains(type) || type.IsEnum || type == typeof(Type) || CanSerializeList(type) || CanSerializeDictionary(type);
+
+        internal static bool IsTriviallySerializable(Type type) =>
+            BuiltinTypes.Contains(type) || type.IsEnum || type == typeof(Type) || CanSerializeList(type) || CanSerializeDictionary(type);
 
         internal static bool CanSerializeType(Type type, out string reason) {
             if (IsTriviallySerializable(type)) {
                 reason = "";
                 return true;
             }
-            
+
             if (type.IsAbstract) {
                 reason = "Type is abstract";
                 return false;
@@ -160,10 +163,25 @@ namespace SerializationSystem.Internal {
 
         internal static bool IsArray(Type type) => type.IsArray && type.GetArrayRank() == 1;
         internal static bool IsList(Type type) => type.IsGenericType && type.GetGenericTypeDefinition() == typeof(List<>);
+        internal static bool IsListInterface(Type type) => type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IList<>);
         internal static bool IsDictionary(Type type) => type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Dictionary<,>);
-        internal static bool CanSerializeList(Type type) => IsArray(type) || IsList(type);
-        internal static bool CanSerializeDictionary(Type type) => IsDictionary(type);
-        internal static Type GetListElementType(Type type) => IsList(type) ? type.GenericTypeArguments[0] : type.GetElementType();
+        internal static bool IsDictionaryInterface(Type type) => type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IDictionary<,>);
+
+        internal static bool CanSerializeList(Type type) {
+            var isInterfaceAssignable = type.IsGenericType && type.GenericTypeArguments.Length == 1 
+                                        && typeof(IList<>).MakeGenericType(type.GenericTypeArguments[0]).IsAssignableFrom(type)
+                                        && typeof(IList).IsAssignableFrom(type);
+            return IsArray(type) || IsList(type) || IsListInterface(type) || isInterfaceAssignable;
+        }
+
+        internal static bool CanSerializeDictionary(Type type) {
+            var isInterfaceAssignable = type.IsGenericType && type.GenericTypeArguments.Length == 2 
+                                        && typeof(IDictionary<,>).MakeGenericType(type.GenericTypeArguments[0], type.GenericTypeArguments[1]).IsAssignableFrom(type)
+                                        && typeof(IDictionary).IsAssignableFrom(type);
+            return IsDictionary(type) || IsDictionaryInterface(type) || isInterfaceAssignable;
+        }
+
+        internal static Type GetListElementType(Type type) => type.IsGenericType ? type.GenericTypeArguments[0] : type.GetElementType();
         internal static Type GetDictionaryKeyType(Type type) => type.GenericTypeArguments[0];
         internal static Type GetDictionaryValueType(Type type) => type.GenericTypeArguments[1];
 

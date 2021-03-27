@@ -28,8 +28,9 @@ namespace SerializationSystem.Internal {
             }
 
             foreach (var field in Fields)
-                if (!SerializeUtils.IsTriviallySerializable(field.FieldType) && !Serializer.HasSerializationModel(field.FieldType, serializeMode))
+                if (!SerializeUtils.IsTriviallySerializable(field.FieldType) && !Serializer.HasSerializationModel(field.FieldType, serializeMode)) {
                     Serializer.BuildSerializationModel(field.FieldType, serializeMode);
+                }
         }
     }
 }
