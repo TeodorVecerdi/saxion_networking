@@ -20,11 +20,11 @@ namespace SerializationSystem.Logging {
         }
 
         [Conditional("DEBUG")]
-        public static void Except(Exception exception, object ctx, bool includeStackTrace = kIncludeStackTrace, bool includeFileInfo = kIncludeFileInfo, bool includeTimestamp = kIncludeTimestamp) {
+        public static void Except(Exception exception, object ctx = null, string messageTitle = "EXCEPTION", bool includeStackTrace = kIncludeStackTrace, bool includeFileInfo = kIncludeFileInfo, bool includeTimestamp = kIncludeTimestamp) {
             if (stackJump == -1) stackJump = 4;
             var message = exception.Message;
             if (includeStackTrace) message += $"\n{exception.StackTrace}";
-            Error(message, ctx, "EXCEPTION", includeFileInfo, includeTimestamp);
+            Error(message, ctx, messageTitle, includeFileInfo, includeTimestamp);
         }
     
         [Conditional("DEBUG")]
