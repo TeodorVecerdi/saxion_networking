@@ -1,33 +1,72 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics;
 using SerializationSystem.Internal;
 using SerializationSystem.Logging;
 
 namespace SerializationSystem {
     public static class Serializer {
-        private static readonly Dictionary<SerializationModelKey, SerializationModel> serializationModel =
-            new Dictionary<SerializationModelKey, SerializationModel>(SerializationModelKey.EqualityComparer);
+        private static readonly ConcurrentDictionary<SerializationModelKey, SerializationModel> serializationModel =
+            new ConcurrentDictionary<SerializationModelKey, SerializationModel>(SerializationModelKey.EqualityComparer);
 
-        public static byte[] Serialize(object obj, Type type, SerializeMode serializeMode = SerializeMode.Default) => Serialize(obj, type, new Packet(), serializeMode);
-        public static byte[] Serialize(object obj, SerializeMode serializeMode = SerializeMode.Default) => Serialize(obj, obj.GetType(), new Packet(), serializeMode);
-        public static byte[] Serialize<T>(T obj, SerializeMode serializeMode = SerializeMode.Default) => Serialize(obj, typeof(T), new Packet(), serializeMode);
+        private static readonly SerializationExceptionHandler defaultExceptionHandler = new DefaultExceptionHandler();
+        private static SerializationExceptionHandler exceptionHandler = defaultExceptionHandler;
+
+        private static bool isSerializationResultReplaced;
+        private static object deserializationReplacement;
+        private static byte[] serializationReplacement;
+
+        public static byte[] Serialize(object obj, SerializeMode serializeMode = SerializeMode.Default) => Serialize(obj, obj.GetType(), serializeMode);
+
+        public static byte[] Serialize<T>(T obj, SerializeMode serializeMode = SerializeMode.Default) {
+            var type = typeof(T);
+            if (!SerializeUtils.CanSerializeType(type, out _)) type = obj.GetType();
+            return Serialize(obj, type, serializeMode);
+        }
+
+        public static byte[] Serialize(object obj, Type type, SerializeMode serializeMode = SerializeMode.Default) {
+            isSerializationResultReplaced = false;
+            var result = Serialize(obj, type, new Packet(), serializeMode);
+            return isSerializationResultReplaced ? serializationReplacement : result;
+        }
+
+        public static T Deserialize<T>(byte[] data) => (T) Deserialize(data);
+
+        public static object Deserialize(byte[] data) {
+            isSerializationResultReplaced = false;
+            var result = Deserialize(new Packet(data));
+            return isSerializationResultReplaced ? deserializationReplacement : result;
+        }
+
+        public static SerializationExceptionHandler ExceptionHandler {
+            set => exceptionHandler = value ?? defaultExceptionHandler;
+        }
 
         internal static byte[] Serialize(object obj, Type type, Packet packet, SerializeMode serializeMode = SerializeMode.Default) {
-            if (SerializeUtils.IsTriviallySerializable(type)) {
-                if (LogOptions.LOG_SERIALIZATION) Log.Info($"[TRIVIAL] Serializing type {SerializeUtils.FriendlyName(type)}", null, "SERIALIZE");
-                var bytes = SerializeTrivialImpl(obj, type, packet, serializeMode).GetBytes();
-                if (LogOptions.LOG_SERIALIZATION) Log.Info($"Serialized type {SerializeUtils.FriendlyName(type)} [{bytes.Length} bytes]", null, "SERIALIZE");
-                return bytes;
+            if (isSerializationResultReplaced) return new byte[0];
+            try {
+                if (SerializeUtils.IsTriviallySerializable(type)) {
+                    if (LogOptions.LOG_SERIALIZATION) Log.Info($"[TRIVIAL] Serializing type {SerializeUtils.FriendlyName(type)}", null, "SERIALIZE");
+                    var bytes = SerializeTrivialImpl(obj, type, packet, serializeMode).GetBytes();
+                    if (LogOptions.LOG_SERIALIZATION) Log.Info($"Serialized type {SerializeUtils.FriendlyName(type)} [{bytes.Length} bytes]", null, "SERIALIZE");
+                    return bytes;
+                }
+
+                if (!SerializeUtils.CanSerializeType(type, out var reason)) {
+                    var exception = new System.Runtime.Serialization.SerializationException(
+                        $"Could not serialize object of type {SerializeUtils.FriendlyName(type)} [Reason: {reason}]");
+                    return exceptionHandler.HandleSerializationException(exception);
+                }
+
+                BeforeSerializeCallback(obj, type);
+                if (!HasSerializationModel(type, serializeMode)) BuildSerializationModel(type, serializeMode);
+                if (LogOptions.LOG_SERIALIZATION) Log.Info($"Serializing type {SerializeUtils.FriendlyName(type)}", null, "SERIALIZE");
+                var bytes2 = SerializeImpl(obj, type, packet, serializeMode).GetBytes();
+                if (LogOptions.LOG_SERIALIZATION) Log.Info($"Serialized type {SerializeUtils.FriendlyName(type)} [{bytes2.Length} bytes]", null, "SERIALIZE");
+                return bytes2;
+            } catch (Exception exception) {
+                return exceptionHandler.HandleSerializationException(exception);
             }
-
-            BeforeSerializeCallback(obj, type);
-
-            if (!HasSerializationModel(type, serializeMode)) BuildSerializationModel(type, serializeMode);
-            if (LogOptions.LOG_SERIALIZATION) Log.Info($"Serializing type {SerializeUtils.FriendlyName(type)}", null, "SERIALIZE");
-            var bytes2 = SerializeImpl(obj, type, packet, serializeMode).GetBytes();
-            if (LogOptions.LOG_SERIALIZATION) Log.Info($"Serialized type {SerializeUtils.FriendlyName(type)} [{bytes2.Length} bytes]", null, "SERIALIZE");
-            return bytes2;
         }
 
         private static Packet SerializeImpl(object obj, Type type, Packet packet, SerializeMode serializeMode) {
@@ -48,31 +87,39 @@ namespace SerializationSystem {
             var typeId = type.ID();
             packet.WriteTypeId(typeId);
             packet.Write(serializeMode, SerializeMode.Default);
-            if (LogOptions.LOG_SERIALIZATION) Log.Info($"Serialized SerializeMode[{serializeMode}]", null, "SERIALIZE");
             packet.Write(type, obj, serializeMode);
+            if (LogOptions.LOG_SERIALIZATION) Log.Info($"Serialized SerializeMode[{serializeMode}]", null, "SERIALIZE");
             return packet;
         }
 
-        public static T Deserialize<T>(byte[] data) => (T) Deserialize(new Packet(data));
-        public static object Deserialize(byte[] data) => Deserialize(new Packet(data));
-
         internal static object Deserialize(Packet packet) {
-            var typeId = packet.ReadTypeId();
-            var serializeMode = packet.Read<SerializeMode>(SerializeMode.Default);
-            if (LogOptions.LOG_SERIALIZATION) Log.Info($"Read SerializeMode[{serializeMode}]", null, "SERIALIZE");
-            var type = typeId.Type;
-            if (SerializeUtils.IsTriviallySerializable(type)) {
-                if (LogOptions.LOG_SERIALIZATION) Log.Info($"[TRIVIAL] Deserializing type {SerializeUtils.FriendlyName(type)}", null, "SERIALIZE");
-                var objTrivial = DeserializeTrivialImpl(packet, type, serializeMode);
-                AfterDeserializeCallback(objTrivial, type);
-                return objTrivial;
-            }
+            if (isSerializationResultReplaced) return null;
+            try {
+                var typeId = packet.ReadTypeId();
+                var serializeMode = packet.Read<SerializeMode>(SerializeMode.Default);
+                if (LogOptions.LOG_SERIALIZATION) Log.Info($"Read SerializeMode[{serializeMode}]", null, "SERIALIZE");
+                var type = typeId.Type;
+                if (SerializeUtils.IsTriviallySerializable(type)) {
+                    if (LogOptions.LOG_SERIALIZATION) Log.Info($"[TRIVIAL] Deserializing type {SerializeUtils.FriendlyName(type)}", null, "SERIALIZE");
+                    var objTrivial = DeserializeTrivialImpl(packet, type, serializeMode);
+                    AfterDeserializeCallback(objTrivial, type);
+                    return objTrivial;
+                }
 
-            if (!HasSerializationModel(type, serializeMode)) BuildSerializationModel(type, serializeMode);
-            if (LogOptions.LOG_SERIALIZATION) Log.Info($"Deserializing type {SerializeUtils.FriendlyName(type)}", null, "SERIALIZE");
-            var obj = DeserializeImpl(packet, type, serializeMode);
-            AfterDeserializeCallback(obj, type);
-            return obj;
+                if (!SerializeUtils.CanSerializeType(typeId.Type, out var reason)) {
+                    var e = new System.Runtime.Serialization.SerializationException(
+                        $"Could not deserialize object of type {SerializeUtils.FriendlyName(typeId.Type)} [Reason: {reason}]");
+                    return exceptionHandler.HandleDeserializationException(e);
+                }
+
+                if (!HasSerializationModel(type, serializeMode)) BuildSerializationModel(type, serializeMode);
+                if (LogOptions.LOG_SERIALIZATION) Log.Info($"Deserializing type {SerializeUtils.FriendlyName(type)}", null, "SERIALIZE");
+                var obj = DeserializeImpl(packet, type, serializeMode);
+                AfterDeserializeCallback(obj, type);
+                return obj;
+            } catch (Exception exception) {
+                return exceptionHandler.HandleDeserializationException(exception);
+            }
         }
 
         private static object DeserializeImpl(Packet packet, Type type, SerializeMode serializeMode) {
@@ -90,10 +137,22 @@ namespace SerializationSystem {
             return packet.Read(type, serializeMode);
         }
 
+        internal static void ReplaceSerializationResult(byte[] replacement) {
+            isSerializationResultReplaced = true;
+            serializationReplacement = replacement;
+            if (LogOptions.LOG_SERIALIZATION) Log.Message($"Replaced serialization result with {replacement.Length} bytes", null, messageTitle: "SERIALIZE");
+        }
+
+        internal static void ReplaceDeserializationResult(object replacement) {
+            isSerializationResultReplaced = true;
+            deserializationReplacement = replacement;
+            if (LogOptions.LOG_SERIALIZATION) Log.Message($"Replaced deserialization result with {replacement}", null, messageTitle: "SERIALIZE");
+        }
+
         private static void BeforeSerializeCallback(object obj, Type type) {
             if (typeof(ISerializationCallback).IsAssignableFrom(type)) {
                 var method = type.GetMethod("OnBeforeSerialize");
-                Debug.Assert(method != null);
+                System.Diagnostics.Debug.Assert(method != null);
                 method.Invoke(obj, new object[0]);
                 if (LogOptions.LOG_SERIALIZATION) Log.Info($"OnBeforeSerialize callback called for {SerializeUtils.FriendlyName(type)}", null, "SERIALIZE");
                 return;
@@ -110,7 +169,7 @@ namespace SerializationSystem {
 
             if (!unityInterfaceType.IsAssignableFrom(type)) return;
             var unityMethod = type.GetMethod("OnBeforeSerialize");
-            Debug.Assert(unityMethod != null);
+            System.Diagnostics.Debug.Assert(unityMethod != null);
             unityMethod.Invoke(obj, new object[0]);
             if (LogOptions.LOG_SERIALIZATION) Log.Info($"OnBeforeSerialize callback called for {SerializeUtils.FriendlyName(type)}", null, "SERIALIZE");
         }
@@ -118,7 +177,7 @@ namespace SerializationSystem {
         private static void AfterDeserializeCallback(object obj, Type type) {
             if (typeof(ISerializationCallback).IsAssignableFrom(type)) {
                 var method = type.GetMethod("OnAfterDeserialize");
-                Debug.Assert(method != null);
+                System.Diagnostics.Debug.Assert(method != null);
                 method.Invoke(obj, new object[0]);
                 if (LogOptions.LOG_SERIALIZATION) Log.Info($"OnAfterDeserialize callback called for {SerializeUtils.FriendlyName(type)}", null, "SERIALIZE");
                 return;
@@ -132,10 +191,10 @@ namespace SerializationSystem {
                 // do nothing if not present
                 return;
             }
-            
+
             if (!unityInterfaceType.IsAssignableFrom(type)) return;
             var unityMethod = type.GetMethod("OnAfterDeserialize");
-            Debug.Assert(unityMethod != null);
+            System.Diagnostics.Debug.Assert(unityMethod != null);
             unityMethod.Invoke(obj, new object[0]);
             if (LogOptions.LOG_SERIALIZATION) Log.Info($"OnAfterDeserialize callback called for {SerializeUtils.FriendlyName(type)}", null, "SERIALIZE");
         }

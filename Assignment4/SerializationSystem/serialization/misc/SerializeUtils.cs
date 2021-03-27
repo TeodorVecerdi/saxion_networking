@@ -1,4 +1,5 @@
-﻿using System;
+using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -6,39 +7,73 @@ using SerializationSystem.Logging;
 
 namespace SerializationSystem.Internal {
     internal static class SerializeUtils {
+        private static readonly ConcurrentDictionary<Type, InstantiateCtor> ctorCache = new ConcurrentDictionary<Type, InstantiateCtor>();
         
         internal static bool HasSerializedAttr(FieldInfo field) => field.GetCustomAttribute<SerializedAttribute>() != null;
         internal static bool HasNonSerializedAttr(FieldInfo field) => field.GetCustomAttribute<NonSerializedAttribute>() != null;
         internal static bool IsTriviallySerializable(Type type) => BuiltinTypes.Contains(type) || type.IsEnum || CanSerializeList(type) || CanSerializeDictionary(type);
 
-        internal static InstantiateCtor Ctor(this Type type) {
-            var constructors = type.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-            if (constructors.Length == 0) return null;
-            //Find suitable constructor
-            ConstructorInfo defaultCtor = null;
-            foreach (var ctor in constructors) {
-                // Preferred ctor
-                var attr = ctor.GetCustomAttribute<PreferredCtorAttribute>();
-                if (attr != null) return new InstantiateCtor(ctor, attr);
-
-                // Default ctor
-                if (ctor.GetParameters().Length == 0) defaultCtor = ctor;
+        internal static bool CanSerializeType(Type type, out string reason) {
+            if (IsTriviallySerializable(type)) {
+                reason = "";
+                return true;
+            }
+            
+            if (type.IsAbstract) {
+                reason = "Type is abstract";
+                return false;
             }
 
-            var finalCtor = defaultCtor ?? constructors[0];
-            return new InstantiateCtor(finalCtor, null);
+            try {
+                var inst = Instantiate(type);
+                Utils.KeepUnusedVariable(ref inst);
+            } catch (Exception e) {
+                while (e.InnerException != null) e = e.InnerException;
+                reason = $"Exception occured while instantiating: {e.Message}";
+                return false;
+            }
+
+            reason = "";
+            return true;
+        }
+
+        internal static InstantiateCtor Ctor(this Type type) {
+            if (!ctorCache.ContainsKey(type)) {
+                var constructors = type.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                if (constructors.Length == 0) return null;
+                //Find suitable constructor
+                ConstructorInfo defaultCtor = null;
+                foreach (var ctor in constructors) {
+                    // Preferred ctor
+                    var attr = ctor.GetCustomAttribute<PreferredCtorAttribute>();
+                    if (attr != null) {
+                        ctorCache[type] = new InstantiateCtor(ctor, attr);
+                        break;
+                    }
+
+                    // Default ctor
+                    if (ctor.GetParameters().Length == 0) defaultCtor = ctor;
+                }
+
+                if (!ctorCache.ContainsKey(type)) {
+                    var finalCtor = defaultCtor ?? constructors[0];
+                    ctorCache[type] = new InstantiateCtor(finalCtor, null);
+                }
+            }
+
+            return ctorCache[type];
         }
 
         internal static object Instantiate(Type type, SerializationConstructor ctor) {
-            return BuiltinTypes.Contains(type) ? InstantiateTrivial(type) : InstantiateNonTrivial(type, ctor);
+            return BuiltinTypes.Contains(type) ? type.Default() : ctor.Create();
         }
 
         internal static object Instantiate(Type type) {
             if (BuiltinTypes.Contains(type))
-                return InstantiateTrivial(type);
+                return type.Default();
             var ctor = type.Ctor();
             var parameters = CtorParameters(ctor);
-            return InstantiateNonTrivial(type, new SerializationConstructor(ctor.Constructor, parameters));
+            return new SerializationConstructor(ctor.Constructor, parameters).Create();
         }
 
         internal static object Instance(this Type type) => Instantiate(type);
@@ -50,14 +85,6 @@ namespace SerializationSystem.Internal {
 
         internal static T Instantiate<T>(SerializationConstructor ctor) {
             return (T) Instantiate(typeof(T), ctor);
-        }
-
-        private static object InstantiateTrivial(Type type) {
-            return type.Default();
-        }
-
-        private static object InstantiateNonTrivial(Type type, SerializationConstructor ctor) {
-            return ctor.Create();
         }
 
         internal static object[] CtorParameters(InstantiateCtor ctor) {
@@ -141,9 +168,9 @@ namespace SerializationSystem.Internal {
         internal static Type GetDictionaryValueType(Type type) => type.GenericTypeArguments[1];
 
         internal static readonly HashSet<Type> BuiltinTypes = new HashSet<Type> {
-            typeof(bool), typeof(byte), typeof(sbyte), typeof(char), 
-            typeof(decimal), typeof(double), typeof(float), typeof(int), 
-            typeof(uint), typeof(long), typeof(ulong), typeof(short), 
+            typeof(bool), typeof(byte), typeof(sbyte), typeof(char),
+            typeof(decimal), typeof(double), typeof(float), typeof(int),
+            typeof(uint), typeof(long), typeof(ulong), typeof(short),
             typeof(ushort), typeof(string)
         };
 
