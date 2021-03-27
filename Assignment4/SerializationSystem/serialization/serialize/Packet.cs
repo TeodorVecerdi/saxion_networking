@@ -41,6 +41,7 @@ namespace SerializationSystem.Internal {
             
             if (SerializeUtils.BuiltinTypes.Contains(type)) WriteBuiltin(type, obj);
             else if (type.IsEnum) WriteEnum(type, obj);
+            else if (type == typeof(Type)) WriteTypeId(((Type) obj).ID());
             else WriteNullable(type, obj, serializeMode);
         }
 
@@ -88,6 +89,7 @@ namespace SerializationSystem.Internal {
             
             if (SerializeUtils.BuiltinTypes.Contains(type)) return ReadBuiltin(type);
             if (type.IsEnum) return ReadEnum(type);
+            if (type == typeof(Type)) return ReadTypeId().Type;
             return ReadNullable(type, serializeMode);
         }
 
@@ -105,7 +107,8 @@ namespace SerializationSystem.Internal {
             if (type == typeof(ulong)) return reader.ReadUInt64(); 
             if (type == typeof(short)) return reader.ReadInt16(); 
             if (type == typeof(ushort)) return reader.ReadUInt16();
-            return ReadNullable(type, SerializeMode.Default);
+            // string
+            return ReadNullable(type, SerializeMode.Default); 
         }
 
         private object ReadNullable(Type type, SerializeMode serializeMode) {

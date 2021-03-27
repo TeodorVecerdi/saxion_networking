@@ -19,7 +19,7 @@ namespace SerializationSystem.Internal {
             if(typeCache == null) typeCache = new ConcurrentDictionary<string, Type>();
             if (typeCache == null) {
                 var e = new Exception("Could not create type cache.");
-                if(!suppressErrors) Log.Except(e, new TypeId((string) null), true, true, true);
+                if(!suppressErrors) Log.Except(e, new TypeId((string) null), includeStackTrace: true);
                 throw e;
             }
 
@@ -63,7 +63,7 @@ namespace SerializationSystem.Internal {
                     }
                 }
             } catch (Exception e) {
-                if(!suppressErrors) Log.Except(e, new TypeId((string)null), true, true, true);
+                if(!suppressErrors) Log.Except(e, new TypeId((string)null), includeStackTrace: true);
                 throw;
             }
 
@@ -73,7 +73,7 @@ namespace SerializationSystem.Internal {
             }
             
             var exception = new Exception($"Could not find type {name} in any loaded or referenced assembly.");
-            if(!suppressErrors) Log.Except(exception, new TypeId((string) null), true, true, true);
+            if(!suppressErrors) Log.Except(exception, new TypeId((string) null), includeStackTrace: true);
             throw exception;
         }
     }

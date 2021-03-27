@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Reflection;
 
 namespace SerializationSystem.Internal {
@@ -12,7 +12,7 @@ namespace SerializationSystem.Internal {
         }
 
         internal object Create() {
-            return parameters.Length == 0 ? Activator.CreateInstance(constructor.DeclaringType) : constructor.Invoke(parameters);
+            return constructor.Invoke(parameters);
         }
     }
 }

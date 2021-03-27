@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,7 +11,7 @@ namespace SerializationSystem.Internal {
         
         internal static bool HasSerializedAttr(FieldInfo field) => field.GetCustomAttribute<SerializedAttribute>() != null;
         internal static bool HasNonSerializedAttr(FieldInfo field) => field.GetCustomAttribute<NonSerializedAttribute>() != null;
-        internal static bool IsTriviallySerializable(Type type) => BuiltinTypes.Contains(type) || type.IsEnum || CanSerializeList(type) || CanSerializeDictionary(type);
+        internal static bool IsTriviallySerializable(Type type) => BuiltinTypes.Contains(type) || type.IsEnum || type == typeof(Type) || CanSerializeList(type) || CanSerializeDictionary(type);
 
         internal static bool CanSerializeType(Type type, out string reason) {
             if (IsTriviallySerializable(type)) {
