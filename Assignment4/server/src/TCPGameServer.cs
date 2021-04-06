@@ -1,16 +1,18 @@
 ﻿using System;
+using System.Collections;
 using System.Net.Sockets;
 using System.Net;
 using System.Threading;
 using System.Collections.Generic;
 using System.Linq;
+using SerializationSystem;
 using SerializationSystem.Logging;
+using shared;
 using shared.model;
 using shared.net;
 using shared.protocol;
 
-namespace server {
-    /**
+namespace server {/**
 	 * Basic TCPGameServer that runs our game.
 	 * 
 	 * Server is made up out of different rooms that can hold different members.
@@ -22,14 +24,41 @@ namespace server {
 	 * As you can see this setup is limited/lacking:
 	 * - only 1 game can be played at a time
 	 */
+
+    class SerializationError : Printable {
+        [Serialized] public string ErrorType;
+        [Serialized] public string Message;
+
+        public SerializationError(string errorType, string message) {
+            ErrorType = errorType;
+            Message = message;
+        }
+    }
+
+    class TestHandler : SerializationExceptionHandler {
+        public override byte[] HandleSerializationException(Exception exception) {
+            Log.Except(exception, includeStackTrace: true, includeTimestamp: false, includeFileInfo: false);
+            ReplaceSerializationResult(Serializer.Serialize(new SerializationError(exception.GetType().FullName, exception.Message)));
+            return new byte[0];
+        }
+
+        public override object HandleDeserializationException(Exception exception) {
+            Log.Except(exception, includeStackTrace: true, includeTimestamp: false, includeFileInfo: false);
+            ReplaceDeserializationResult(new SerializationError(exception.GetType().FullName, exception.Message));
+            return null;
+        }
+    }
+
     public class TCPGameServer {
         public static void Main() {
-            LogOptions.LogSerializationWrite = false;
-            LogOptions.LogSerializationRead = false;
+            // LogOptions.LogSerialization = false;
+            // LogOptions.LogSerializationReplacements = false;
+            // LogOptions.LogSerializationWrite = false;
+            // LogOptions.LogSerializationRead = false;
+            Serializer.ExceptionHandler = new TestHandler();
             new TCPGameServer(5f).Run();
         }
 
-        //we have 3 different rooms at the moment (aka simple but limited)
         private readonly LoginRoom loginRoom; //this is the room every new user joins
         private readonly LobbyRoom lobbyRoom; //this is the room a user moves to after a successful 'login'
         private readonly GameResultsRoom gameResultsRoom;

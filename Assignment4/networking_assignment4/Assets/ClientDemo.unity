@@ -2457,7 +2457,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _view: {fileID: 1669841060}
-  AutoQueueForGame: 1
+  AutoQueueForGame: 0
 --- !u!1 &924802040
 GameObject:
   m_ObjectHideFlags: 0
@@ -3157,7 +3157,7 @@ MonoBehaviour:
   _view: {fileID: 1706710309}
   ServerIP: localhost
   ServerPort: 55555
-  AutoConnectWithRandomName: 1
+  AutoConnectWithRandomName: 0
 --- !u!4 &1334490947
 Transform:
   m_ObjectHideFlags: 0

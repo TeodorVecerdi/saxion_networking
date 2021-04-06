@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using shared.protocol;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 /**
  * Starting state where you can connect to the server.
@@ -11,9 +12,12 @@ public class LoginState : ApplicationStateWithView<LoginView> {
     [Tooltip("To avoid long iteration times, set this to true while testing.")]
     [SerializeField] private bool AutoConnectWithRandomName;
 
+    private void Awake() {
+        State.Instance.Initialize(fsm);
+    }
+
     public override void EnterState() {
         base.EnterState();
-
         //listen to a connect click from our view
         view.ButtonConnect.onClick.AddListener(Connect);
 
@@ -74,7 +78,7 @@ public class LoginState : ApplicationStateWithView<LoginView> {
         //Dont do anything with this info at the moment, just leave it to the RoomJoinedEvent
         //We could handle duplicate name messages, get player info etc here
         if (message.Result == PlayerJoinResponse.RequestResult.ACCEPTED) {
-            State.Instance.Initialize(message.PlayerInfo, fsm);
+            State.Instance.LoadPlayerInfo(message.PlayerInfo);
         } else if (message.Result == PlayerJoinResponse.RequestResult.CONFLICT) {
             view.TextConnectResults = "Name is already taken. Please choose another one.";
         }

@@ -17,15 +17,18 @@ public class State : MonoSingleton<State> {
     private IDisposable heartbeatCancelToken;
     private GameResult lastGameResult;
 
-    public void Initialize(PlayerInfo selfInfo, ApplicationFSM fsm) {
+    public void Initialize(ApplicationFSM fsm) {
         if (initialized) {
             Log.Warn("Attempting to initialize State when it is already initialized");
             return;
         }
 
         initialized = true;
-        this.selfInfo = selfInfo;
         this.fsm = fsm;
+    }
+
+    public void LoadPlayerInfo(PlayerInfo selfInfo) {
+        this.selfInfo = selfInfo;
     }
 
     public void InitializeHeartbeat(float timeout) {
