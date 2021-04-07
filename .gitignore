@@ -161,6 +161,8 @@ InitTestScene*.unity
 
 # End of https://www.toptal.com/developers/gitignore/api/jetbrains+all,unity
 
+Assignment 1/obj/
+Assignment 1/bin/
 Assignment3_ungit/
 Assignment4/networking_assignment4_clone_*/
 Assignment4/networking_assignment4/Assets/shared/shared.dll
